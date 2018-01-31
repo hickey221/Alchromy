@@ -58,29 +58,29 @@ dirPath = T.StringVar()
 dirPath.set("")
 
 def useFile():
-    e1.configure(state="normal")
-    e2.configure(state="disabled")
-    browse1.configure(state="normal")
-    browse2.configure(state="disabled")
-    e1.update()
-    e2.update()
+    enterFile.configure(state="normal")
+    enterDir.configure(state="disabled")
+    buttonBrowseFile.configure(state="normal")
+    buttonBrowseDir.configure(state="disabled")
+    enterFile.update()
+    enterDir.update()
 
 def useDir():
-    e1.configure(state="disabled")
-    e2.configure(state="normal")
-    browse1.configure(state="disabled")
-    browse2.configure(state="normal")
-    e1.update()
-    e2.update()
+    enterFile.configure(state="disabled")
+    enterDir.configure(state="normal")
+    buttonBrowseFile.configure(state="disabled")
+    buttonBrowseDir.configure(state="normal")
+    enterFile.update()
+    enterDir.update()
 
 def browseForFile():
     newPath = filedialog.askopenfilename()
     if newPath:
         filePath.set(newPath)
         statusUpdate("Using file "+os.path.basename(filePath.get()))
-        statusUpdate("Found ### waveforms.")
-    e1.update()
-    e1.xview_moveto(1)
+        #statusUpdate("Found ### waveforms.")
+    enterFile.update()
+    enterFile.xview_moveto(1)
     
 def browseForDir():
     global allFiles
@@ -91,24 +91,24 @@ def browseForDir():
         allFiles = glob.glob(dirPath.get()+"/*.dat")
         
         statusBox.insert(T.END,"Found "+str(len(allFiles))+" files.\n")
-    e2.update()
-    e2.xview_moveto(1)
+    enterDir.update()
+    enterDir.xview_moveto(1)
 
 T.Label(root, text="Input file(s)").grid(row=0, column=0,columnspan=2)
 
-r1 = T.Radiobutton(root,text="Select File",variable=fileVsDir, value=1,command=useFile)
-r1.grid(row=1, column=0, sticky='w')
-e1 = T.Entry(root, textvariable=filePath)
-e1.grid(row=1, column=1, sticky="w")
-browse1 = T.Button(root,text="Browse",command=browseForFile)
-browse1.grid(row=1,column=2)
+radioFile = T.Radiobutton(root,text="Select File",variable=fileVsDir, value=1,command=useFile)
+radioFile.grid(row=1, column=0, sticky='w')
+enterFile = T.Entry(root, textvariable=filePath)
+enterFile.grid(row=1, column=1, sticky="w")
+buttonBrowseFile = T.Button(root,text="Browse",command=browseForFile)
+buttonBrowseFile.grid(row=1,column=2)
 
-r2 = T.Radiobutton(root,text="Select Directory",variable=fileVsDir, value=2,command=useDir)
-r2.grid(row=2, column=0, sticky='w')
-e2 = T.Entry(root, textvariable=dirPath)
-e2.grid(row=2, column=1, sticky="w")
-browse2 = T.Button(root,text="Browse",command=browseForDir)
-browse2.grid(row=2,column=2)
+radioDir = T.Radiobutton(root,text="Select Directory",variable=fileVsDir, value=2,command=useDir)
+radioDir.grid(row=2, column=0, sticky='w')
+enterDir = T.Entry(root, textvariable=dirPath)
+enterDir.grid(row=2, column=1, sticky="w")
+buttonBrowseDir = T.Button(root,text="Browse",command=browseForDir)
+buttonBrowseDir.grid(row=2,column=2)
 
 #%% Output options
 outGraph = T.BooleanVar(root,value=True)
@@ -136,7 +136,7 @@ r_spectra_n.grid(row=3, column=5, sticky='w')
 nmMin = T.StringVar(value="450") 
 nmMax = T.StringVar(value="700") 
 T.Label(root, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
-#T.Label(root, text="Min").grid(row=4, column=3, sticky='w')
+
 e_nmMin = T.Entry(root, textvariable=nmMin, width=6).grid(row=4, column=4, sticky='w')
 e_nmMax = T.Entry(root, textvariable=nmMax, width=6).grid(row=4, column=5, sticky='w')
 
@@ -182,6 +182,7 @@ refDefault = T.BooleanVar(root, value=True)
 T.Label(root, text="Reference spectra").grid(row=4, column=0, columnspan=2)
 refPath = T.StringVar(root, value="refspec.dat")
 r_ref_default = T.Radiobutton(root,text="Default ",variable=refDefault,value=True,command=useDefaultRef).grid(row=5, column=0, sticky='w')
+T.Label(root, text="refspec.dat").grid(row=5, column=1, sticky="w")
 r_ref_custom = T.Radiobutton(root,text="Custom ",variable=refDefault,value=False,command=useCustomRef).grid(row=6, column=0, sticky='w')
 e_ref = T.Entry(root, textvariable=refPath)
 e_ref.grid(row=6, column=1, sticky="w")
@@ -216,10 +217,9 @@ colBrowser.grid(row=7,column=0,columnspan=3)
 #%% Operator ID
 labelOpID = T.Label(root,text="Operator ID")
 labelOpID.grid(row=0,column=6)
-opID = T.StringVar(root, value="John Doe")
+opID = T.StringVar(root, value="")
 enterOpID = T.Entry(root, textvariable=opID)
 enterOpID.grid(row=1,column=6)
-
 
 #%% Go button!
 def launchDeconv():
@@ -233,23 +233,18 @@ def launchDeconv():
     if fileVsDir.get()==1:
         #dataFile = filePath.get()
         allFiles = [glob.glob(filePath.get())]
-    #else:
-        ##dataFile = dirPath.get()
-        #dataFile = glob.glob(dirPath.get()+"/*.dat")
         
     # Check setting for ignored columns
     ignored_species = list(l_cols_unused.get(0,T.END))
-    # Get and check 
+    # Get and check wavelengths
     try:
         nmMinInt = int(nmMin.get())
         nmMaxInt = int(nmMax.get())
     except:
-        #statusBox.insert(T.END, "Error in wavelengths\n")
         statusUpdate("Error in wavelengths")
         return
     
     if nmMinInt > nmMaxInt:
-        #statusBox.insert(T.END, "Error, minimum too high\n")
         statusUpdate("Error, minimum too high\n")
         return
         
@@ -262,14 +257,14 @@ def launchDeconv():
     # For each file we have
     for eachFile in allFiles:
         statusUpdate("Reading file: "+str(eachFile))
-        deconv.deconv(eachFile,reffile=refPath.get(),except_species=ignored_species,nm_min=nmMinInt, nm_max=nmMaxInt)
+        deconv.deconv(eachFile,reffile=refPath.get(),except_species=ignored_species,nm_min=nmMinInt, nm_max=nmMaxInt, opID=opID.get())
         # Update progress bar
         pBar['value'] += barStep
         pBar.update()
         time.sleep(1)
 
     # When finished, announce it
-    statusUpdate("Done")
+    statusUpdate("Done!")
     pBar['value'] = 100
 
 bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv)
@@ -278,11 +273,6 @@ bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
 # Progres bar
 pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=200,mode='determinate')
 pBar.grid(row=6, column=5, columnspan=2, sticky='s')
-#pBarCanvas = T.Canvas(root)
-#pBarCanvas.create_text(0,0,"Bar label")
-#pBarCanvas.grid(row=6, column=5, columnspan=2, sticky='s')
-#pBarLabel = T.Label(root,text="Bar label")
-#pBarLabel.grid(row=6, column=5, columnspan=2, sticky='s')
 
 # status box
 def statusUpdate(phrase):
@@ -297,7 +287,5 @@ statusBox.grid(row=7,column=5,columnspan=3,rowspan=2)
 useFile()
 useDefaultRef()
 
-
 #%% Execute loop
 root.mainloop()
-
