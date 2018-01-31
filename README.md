@@ -7,9 +7,10 @@ Alchromy requires Python 3 and the following packages:
  * tkinter
  * pandas
  * glob
+ * io
  * scipy
- * matplpotlib
  * numpy
+ * matplpotlib
 
 ## Usage
 Users can access the script through the command line (using *deconv.py*) or the GUI (*main_gui.py*). In either case, the following parameters should be specified:
