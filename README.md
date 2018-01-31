@@ -19,6 +19,9 @@ Users can access the script through the command line (using *deconv.py*) or the 
 * **Ignored species**: Waveforms from the reference that should not be used in curve fitting.
 * **nm_min** and **nm_max**: Minimum and maximum wavelengths to consider for the curve fitting. Both experimental and reference spectra must have values continuously in this region.
 
+#### File input format
+The file input methods of Alchromy are being expanded, but are currently limited to a narrow specification. Reference files should contain multiple columns beginning with wavelength (named *nm*). Subsequent columns should be named for the species they contain. Experimental data files should contain two columns, named *nm* and *A* for the wavelength and absorbance, respectively. All files should be in tab delimited format with the extension *.dat*.
+
 ## Output
 At this time, Alchromy produces three types of output files:
 * A text file (.txt) reporting operating parameters, fit values, and composition percentages.
@@ -31,5 +34,4 @@ There are many changes in the works! Below is a list of features already in deve
 * Improved status reporting in GUI .
 * Input of multiple waves from a single file (xslx or csv format).
 * Batched deconvolution from GUI, with updating progress bar.
-* Input and recording of operator ID.
 * More informative output file names.
