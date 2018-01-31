@@ -21,7 +21,8 @@ def deconv(datafile, # List of file path strings
            except_species = [], # Omit this list of species
            #out_dir='output', # Where to save the files
            nm_min=450, # Minimum wavelength
-           nm_max=700): # Maximum wavelength
+           nm_max=700, # Maximum wavelength
+           opID='user'): 
     """
     Performs spectral deconvolution of an experimental hemoglobin solution compared to standard references (reffile). datafile is a LIST of path strings. norm subtracts the lowest value (usually at 700 nm) from all entries.
     """
@@ -84,7 +85,6 @@ def deconv(datafile, # List of file path strings
         ss_t = np.sum((exp['A'] - np.mean(exp['A']))**2)
         r2 = 1-(ss_r/ss_t)
         
-
         # Print fit data and coefficients
         
         tbox = r"$R^2$ fit: {:.5f}".format(r2)
@@ -93,12 +93,13 @@ def deconv(datafile, # List of file path strings
             os.makedirs(out_dir)
         tbody = ["Curve fitting report",
                  "Using scipy.optimize.curve_fit (non-linear least squares regression)",
-                 "Version 1.0.0 \t Richard Hickey \t Ohio State University",
+                 "Version 1.1.0 \t Richard Hickey \t Ohio State University",
                  ""]
         tbody += ["Sample: \t"+myTitle,
                   "Filename: \t"+thisfile,
                   "Reference: \t"+reffile,
-                  "Wavelengths: \t"+str(nm_min)+"-"+str(nm_max)]
+                  "Wavelengths: \t"+str(nm_min)+"-"+str(nm_max),
+                  "Operator: \t"+opID]
         if norm:
             tbody += ["Normalized to lowest value = 0"]
         tbody += [""]
@@ -123,7 +124,6 @@ def deconv(datafile, # List of file path strings
         f = open(out_dir+'/'+myTitle+'_output.txt','w')      
         f.write('\n'.join(tbody))
         f.close()
-
 
         #%% Plot results
         
@@ -153,14 +153,7 @@ def deconv(datafile, # List of file path strings
 #%% If running file directly, do this
 if __name__ == '__main__':
     # These commands read all of the .dat files in the specified folder
-    # Comment out these lines if you don't have the files present
-    #met_rhb = glob.glob('data/met-rHb(unfiltered)/*.dat')
-    #deoxy_rhb = glob.glob('data/Deoxy-rHb(unfiltered)/*.dat')
-    #oxy_rhb = glob.glob('data/Oxy-rHb(filtered)/*.dat')
-    #rhbco = glob.glob('data/rHbCO/*.dat')
-    #co_rhbco = glob.glob('data/COed-rHbCO/*.dat')
-    #co_oxy_rhb = glob.glob('data/COed-Oxy-rHb/*.dat')
-    #myData = glob.glob('data/1-22-18/*.dat')
+
     myData = glob.glob('data/ZIF_1-24-18/*.dat')
     allData = glob.glob('data/test/**/*.dat', recursive=True)
     
