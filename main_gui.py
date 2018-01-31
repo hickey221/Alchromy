@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+Alchromy main executable
+
+Richard Hickey
+
+
 TODO: Documentation
 TODO: Icon
 TODO: Error handling
@@ -19,14 +24,13 @@ import pandas as pd
 import glob
 import os
 import deconv
-
-#import tkinter.scrolledtext as scrolledtext
+import time
 
 #%% Title, initialization and menubar
 root = T.Tk()
-root.title('Spectral Deconvolution')
+root.title('Alchromy - Spectral Deconvolution')
 
-# make the top right close button minimize (iconify) the main window
+# make the top right close button close the main window
 root.protocol("WM_DELETE_WINDOW", root.destroy)
 
 # make Esc exit the program
@@ -46,7 +50,7 @@ root.config(menu=menubar)
 #%% File and directory browsing
 
 fileVsDir = T.IntVar(value=1) # 1=file, 2=dir
-
+allFiles = []
 filePath = T.StringVar()
 filePath.set("")
 
@@ -73,14 +77,20 @@ def browseForFile():
     newPath = filedialog.askopenfilename()
     if newPath:
         filePath.set(newPath)
-        statusBox.insert(T.END,"Using file "+os.path.basename(filePath.get())+"\n")
-        statusBox.insert(T.END,"Found ### waveforms.\n")
+        statusUpdate("Using file "+os.path.basename(filePath.get()))
+        statusUpdate("Found ### waveforms.")
     e1.update()
     e1.xview_moveto(1)
+    
 def browseForDir():
+    global allFiles
     newPath = filedialog.askdirectory()
     if newPath:
-        dirPath.set(newPath)
+        dirPath.set(newPath)        
+        statusUpdate("Using dir /"+os.path.split(dirPath.get())[1]+"/")
+        allFiles = glob.glob(dirPath.get()+"/*.dat")
+        
+        statusBox.insert(T.END,"Found "+str(len(allFiles))+" files.\n")
     e2.update()
     e2.xview_moveto(1)
 
@@ -121,6 +131,15 @@ r_spectra_y.grid(row=3, column=4, sticky='w')
 r_spectra_n = T.Radiobutton(root,text="No",variable=outSpectra,value=False)
 r_spectra_n.grid(row=3, column=5, sticky='w')
 
+#%% Wavelength select
+
+nmMin = T.StringVar(value="450") 
+nmMax = T.StringVar(value="700") 
+T.Label(root, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
+#T.Label(root, text="Min").grid(row=4, column=3, sticky='w')
+e_nmMin = T.Entry(root, textvariable=nmMin, width=6).grid(row=4, column=4, sticky='w')
+e_nmMax = T.Entry(root, textvariable=nmMax, width=6).grid(row=4, column=5, sticky='w')
+
 
 #%% Specify reference spectra
 
@@ -129,8 +148,7 @@ def getRefCols(filePath='refspec.dat'):
         ref = pd.read_csv(filePath,'\t')
         species = list(ref.drop('nm',axis=1))
     except:
-        statusBox.insert(T.END,"Error reading file!\n")
-        print("Error reading file!")
+        statusUpdate("Error reading file!")
         return
     # clear lists
     l_cols_unused.delete(0, T.END)
@@ -140,14 +158,25 @@ def getRefCols(filePath='refspec.dat'):
     for item in species:
         l_cols_used.insert(T.END,item)
 
-
+    statusUpdate("Using reference "+os.path.basename(filePath))        
+    statusUpdate("Found " + str(len(species)) + " waves.") 
+    
 def useCustomRef():
     e_ref.configure(state="normal")
     b_ref.configure(state="normal")
 
 def useDefaultRef():
+    getRefCols()
     e_ref.configure(state="disabled")
     b_ref.configure(state="disabled")
+
+def browseForRef():
+    newPath = filedialog.askopenfilename()
+    if newPath:
+        refPath.set(newPath)
+    getRefCols(newPath)
+    e_ref.update()
+    e_ref.xview_moveto(1)
 
 refDefault = T.BooleanVar(root, value=True)
 T.Label(root, text="Reference spectra").grid(row=4, column=0, columnspan=2)
@@ -156,7 +185,7 @@ r_ref_default = T.Radiobutton(root,text="Default ",variable=refDefault,value=Tru
 r_ref_custom = T.Radiobutton(root,text="Custom ",variable=refDefault,value=False,command=useCustomRef).grid(row=6, column=0, sticky='w')
 e_ref = T.Entry(root, textvariable=refPath)
 e_ref.grid(row=6, column=1, sticky="w")
-b_ref = T.Button(root,text="Browse")
+b_ref = T.Button(root,text="Browse", command=browseForRef)
 b_ref.grid(row=6,column=2)
 
 #%% Choose columns to use
@@ -174,8 +203,7 @@ colBrowser = T.Frame(root)
 T.Label(colBrowser, text="Used").grid(row=0, column=0)
 T.Label(colBrowser, text="Ignored").grid(row=0, column=2)
 l_cols_used = T.Listbox(colBrowser)
-for item in ["one", "two", "three", "four"]:
-    l_cols_used.insert(T.END,item)
+
 l_cols_unused = T.Listbox(colBrowser)
 l_cols_used.grid(row=1,column=0,rowspan=4)
 l_cols_unused.grid(row=1,column=2,rowspan=4)
@@ -185,38 +213,67 @@ b_unuseCol = T.Button(colBrowser,text=">",command=unuseCol).grid(row=2,column=1,
 
 colBrowser.grid(row=7,column=0,columnspan=3)
 
+#%% Operator ID
+labelOpID = T.Label(root,text="Operator ID")
+labelOpID.grid(row=0,column=6)
+opID = T.StringVar(root, value="John Doe")
+enterOpID = T.Entry(root, textvariable=opID)
+enterOpID.grid(row=1,column=6)
+
+
 #%% Go button!
 def launchDeconv():
     # clear progress bar
+    global allFiles
+    global nmMin
+    global nmMax
     pBar['value'] = 0
     
     # Decide what file we're using
     if fileVsDir.get()==1:
         #dataFile = filePath.get()
-        dataFile = glob.glob(filePath.get())
-    else:
-        #dataFile = dirPath.get()
-        dataFile = glob.glob(dirPath.get()+"/*.dat")
+        allFiles = [glob.glob(filePath.get())]
+    #else:
+        ##dataFile = dirPath.get()
+        #dataFile = glob.glob(dirPath.get()+"/*.dat")
         
     # Check setting for ignored columns
     ignored_species = list(l_cols_unused.get(0,T.END))
+    # Get and check 
+    try:
+        nmMinInt = int(nmMin.get())
+        nmMaxInt = int(nmMax.get())
+    except:
+        #statusBox.insert(T.END, "Error in wavelengths\n")
+        statusUpdate("Error in wavelengths")
+        return
     
+    if nmMinInt > nmMaxInt:
+        #statusBox.insert(T.END, "Error, minimum too high\n")
+        statusUpdate("Error, minimum too high\n")
+        return
+        
     # Print out to status box
-    statusBox.insert(T.END, "Reading file"+str(dataFile)+"\n")
-    statusBox.insert(T.END, "Ignoring:"+str(ignored_species)+"\n")
-    statusBox.yview_moveto(1)
+    statusUpdate("Have files "+str(allFiles))
+    statusUpdate("Ignoring: "+str(ignored_species))
     
-    # Make call to deconvolution script
-    deconv.deconv(dataFile,reffile=refPath.get(),except_species=ignored_species)
-    
-    # Update progress bar
-    pBar['value'] += 20
-    
-    # When finished, announce it
-    statusBox.insert(T.END, "Done.\n")
+    # Figure out status bar increments
+    barStep = round(100/len(allFiles))
+    # For each file we have
+    for eachFile in allFiles:
+        statusUpdate("Reading file: "+str(eachFile))
+        deconv.deconv(eachFile,reffile=refPath.get(),except_species=ignored_species,nm_min=nmMinInt, nm_max=nmMaxInt)
+        # Update progress bar
+        pBar['value'] += barStep
+        pBar.update()
+        time.sleep(1)
 
-bigGreenButton = T.Button(root, text="GO", bg="green", command=launchDeconv)
-bigGreenButton.grid(row=0, column=5, sticky="SE", padx=10, pady=10)
+    # When finished, announce it
+    statusUpdate("Done")
+    pBar['value'] = 100
+
+bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv)
+bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
 
 # Progres bar
 pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=200,mode='determinate')
@@ -228,14 +285,17 @@ pBar.grid(row=6, column=5, columnspan=2, sticky='s')
 #pBarLabel.grid(row=6, column=5, columnspan=2, sticky='s')
 
 # status box
-statusBox = T.Text(root, height=10, width=30)
-statusBox.grid(row=7,column=5,columnspan=2,rowspan=2)
+def statusUpdate(phrase):
+    statusBox.insert(T.END,phrase+"\n")
+    statusBox.yview_moveto(1)
+    
+statusBox = T.Text(root, height=10, width=40)
+statusBox.grid(row=7,column=5,columnspan=3,rowspan=2)
 
 #%% Make some defafult changes
 # default dir off
 useFile()
 useDefaultRef()
-getRefCols()
 
 
 #%% Execute loop
