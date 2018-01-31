@@ -10,10 +10,6 @@ TODO: Icon
 TODO: Error handling
 TODO: Capture output from deconv and send to GUI
 TODO: Input multiple waves from one file
-TODO: Figure out when deconv is done running
-TODO: Send files one at a time to deconv and make progress bar
-TODO: Operator
-
 """
 
 # Python 3
