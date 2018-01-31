@@ -13,7 +13,6 @@ from scipy.optimize import curve_fit
 import pandas as pd
 import glob
 import os
-  
 
 def deconv(datafile, # List of file path strings
            reffile='refspec.dat', # Reference spectra
@@ -26,6 +25,9 @@ def deconv(datafile, # List of file path strings
     """
     Performs spectral deconvolution of an experimental hemoglobin solution compared to standard references (reffile). datafile is a LIST of path strings. norm subtracts the lowest value (usually at 700 nm) from all entries.
     """
+    # Turn a single filename into a 1-item list to be iterated
+    if isinstance(datafile, str):
+        datafile = [datafile]
     # Read reference spectra
     ref = pd.read_csv(reffile,'\t')
     # Remove unwanted reference species
