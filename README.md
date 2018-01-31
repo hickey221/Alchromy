@@ -23,3 +23,12 @@ At this time, Alchromy produces three types of output files:
 * A text file (.txt) reporting operating parameters, fit values, and composition percentages.
 * An image file (.png) graphing the experimental and fit waves.
 * A spreadsheet (.xslx) of the entire fit wave used in the graph.
+
+## To-do list
+There are many changes in the works! Below is a list of features already in development.
+* Better error handling.
+* Improved status reporting in GUI .
+* Input of multiple waves from a single file (xslx or csv format).
+* Batched deconvolution from GUI, with updating progress bar.
+* Input and recording of operator ID.
+* More informative output file names.
