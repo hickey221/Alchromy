@@ -12,6 +12,7 @@ from os.path import isfile, join, basename, exists
 #import libraries to edit excel files
 #import xlwt
 import xlrd
+import pandas as pd
 import numpy as np #Numpy for data handling
 
 #Folder to work in, change this for different data locations
