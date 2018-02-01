@@ -18,9 +18,8 @@ import os
 def deconv(datafile, # List of file path strings
            reffile='refspec.dat', # Reference spectra
            norm=False,  # Normalize minimum value to 0
-           savefile=True, # Output image
+           savePng=True, # Output image
            except_species = [], # Omit this list of species
-           #out_dir='output', # Where to save the files
            nm_min=450, # Minimum wavelength
            nm_max=700): # Maximum wavelength
     """
@@ -48,16 +47,34 @@ def deconv(datafile, # List of file path strings
     def func(X, *params):
         return np.stack(params).dot(X)
 
+
+    def kineticFit():
+        pass
+        # Accept a dataframe with multiple exp columns
+        
+        # For each exp column:
+            # Perform deconvolution
+            # Save numeric data (no file output yet)
+            
+
+
     # Do the following for each file we are given:
     for thisfile in datafile:
         # Figure out where in the world we are working
         myPath = os.path.basename(thisfile) # yields 'filename.ext'
         myTitle, myExt = os.path.splitext(myPath) # yields 'filename', '.ext'
-        myDir = os.path.dirname(thisfile) # Yields 'data/somebatch/'
-        
+        myDir = os.path.dirname(thisfile) # yields 'data/somebatch/'
+        # Decide where output will go
         out_dir = myDir + '/' + 'output'
+        
         # Read the file
-        exp = pd.read_csv(thisfile,'\t')
+        if myExt == ".dat" or myExt == ".txt" or myExt==".csv":
+            exp = pd.read_csv(thisfile,'\t')
+        elif myExt == ".xls" or myExt == ".xlsx":
+            exp = pd.read_excel(thisfile,header=1)
+        else:
+            raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
+
         print("Running "+thisfile)
         
         # Take only evens between wavelength limits
@@ -103,7 +120,10 @@ def deconv(datafile, # List of file path strings
         tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
         for sp,conc,sd in zip(species,concs,perr):
             cpercent = 100*conc/sum(concs)
-            sdpercent = 100 * sd / conc
+            if conc< 0.000001:
+                sdpercent = 0
+            else:
+                sdpercent = 100 * sd / conc
             tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
             tbody += [sp+"\t{:.6f} ({:.2f}%)".format(conc,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
         tbody += ["",
@@ -137,7 +157,8 @@ def deconv(datafile, # List of file path strings
         anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
         ax.add_artist(anchored_text)    
         #%% Save figure 
-        plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
+        if savePng:
+            plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
         
         #%% Output spectra file
         exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
