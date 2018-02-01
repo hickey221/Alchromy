@@ -14,13 +14,17 @@ TODO: Input multiple waves from one file
 
 # Python 3
 import tkinter as T
-from tkinter import ttk
-from tkinter import filedialog
+from tkinter import ttk, filedialog, messagebox
 import pandas as pd
 import glob
 import os
 import deconv
 import time
+
+#%% "About" dialog box
+def aboutBox():
+    messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nVersion 1.1.0\nRichard Hickey\nOhio State University\n2018")
+
 
 #%% Title, initialization and menubar
 root = T.Tk()
@@ -39,9 +43,10 @@ filemenu.add_command(label="Exit", command=root.destroy)
 menubar.add_cascade(label="File", menu=filemenu)
 
 aboutmenu = T.Menu(menubar, tearoff=0)
-aboutmenu.add_command(label="About")
-menubar.add_cascade(label="About", menu=aboutmenu)
+aboutmenu.add_command(label="About",command=aboutBox)
+menubar.add_cascade(label="Help", menu=aboutmenu)
 root.config(menu=menubar)
+
 
 #%% File and directory browsing
 
