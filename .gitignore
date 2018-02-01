@@ -40,4 +40,12 @@
 ehthumbs.db
 Thumbs.db
 trig_ref.dat
+<<<<<<< HEAD
 1-50%.xls
+=======
+*.xls
+# Visual Studio #
+#################
+*.suo
+*.json
+>>>>>>> adbc2195222c332260975283c144382616b0470c
