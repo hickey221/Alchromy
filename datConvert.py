@@ -6,6 +6,11 @@ Created on Thu Feb  1 12:04:32 2018
 
 @author: hickey.221
 """
+
+"""
+TO DO: Allow for multi column import
+TO DO: Allow for either replicate or kinetic data output instead of file output
+"""
 import pandas as pd
 import os
 
