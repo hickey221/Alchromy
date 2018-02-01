@@ -41,3 +41,7 @@ ehthumbs.db
 Thumbs.db
 trig_ref.dat
 *.xls
+# Visual Studio #
+#################
+*.suo
+*.json
