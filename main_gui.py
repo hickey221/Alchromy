@@ -221,11 +221,6 @@ bigGreenButton.grid(row=0, column=5, sticky="SE", padx=10, pady=10)
 # Progres bar
 pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=200,mode='determinate')
 pBar.grid(row=6, column=5, columnspan=2, sticky='s')
-#pBarCanvas = T.Canvas(root)
-#pBarCanvas.create_text(0,0,"Bar label")
-#pBarCanvas.grid(row=6, column=5, columnspan=2, sticky='s')
-#pBarLabel = T.Label(root,text="Bar label")
-#pBarLabel.grid(row=6, column=5, columnspan=2, sticky='s')
 
 # status box
 statusBox = T.Text(root, height=10, width=30)
