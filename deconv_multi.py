@@ -11,9 +11,153 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from scipy.optimize import curve_fit
 import pandas as pd
-import glob
+#import glob
 import os
 
+#%% New functions
+def readFile(filePath):
+    """
+    Reads in a csv or spreadsheet file. Returns a dataframe with data, and
+    a dict with file information
+    """
+    # Analyze the file path and save important parts
+    fileDict = {'fullPath': filePath} # Initialize dict with given path
+    fileDict['name.ext'] = os.path.basename(filePath) # yields 'filename.ext'
+    fileDict['name'],fileDict['ext'] = os.path.splitext(fileDict['name.ext']) # yields 'filename', '.ext'
+    fileDict['dir'] = os.path.dirname(filePath) # yields 'data/somebatch/'
+    fileDict['outDir'] = fileDict['dir'] + '/' + 'output' # yields data/somebatch/output
+
+    # Read in the file
+    if fileDict['ext'] in ['.dat','.txt','.csv']:
+        df = pd.read_csv(filePath,'\t')
+    elif fileDict['ext'] in ['.xls','.xlsx']:
+        df = pd.read_excel(filePath)
+    else:
+        raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
+
+    return df, fileDict
+
+# Define curve_fit function
+def func(X, *params):
+    return np.stack(params).dot(X)
+
+def cleanData(df, cutoff):
+    """
+    Inputs a dataframe of reference spectra as well as wavelength cutoffs.
+    Trims all data to be within the limits, and removes data points that don't match (odds)
+    """
+    # Take only evens between wavelength limits
+    df = df[df['nm'] >= cutoff[0]]
+    df = df[df['nm'] <= cutoff[1]]
+    df = df[df['nm'] % 2 == 0]
+
+    return df
+
+def multiColDeconv(refPath='refspec.dat',
+                   filePath='test_kinetic.dat',
+                   kinetic=False,
+                   cutoff=(450,700)):
+    """
+    Handle multiple columns of experimental data by treating it as
+    1) Replicates of the same data points
+    2) Kinetic data over time
+    """
+    def kineticAnalysis():
+        kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
+        kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
+        kdf.set_index('Time') # do we need this?
+        # make error columns
+        species_err = [sp + '_err' for sp in species]
+        kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
+        for timePoint in exp:
+            # Make call to curve_fit
+            coeffs, perr = doFitting(ref.drop('nm',axis=1).T, exp[timePoint])
+            # Extract error and coefficients from results
+        for sp,sp_e,coeff,sd in zip(species,species_err,coeffs,perr):
+            kdf[kdf['Time']==timePoint][sp] = coeff # each coefficient
+            kdf[kdf['Time']==timePoint][sp_e] = sd # each coefficient error
+        return kdf
+
+    # Input reference file
+    ref, _ = readFile(refPath)
+    ref.rename(columns={ref.columns[0]: 'nm'}, inplace=True) # Treat 1st col as wavelengths
+    ref = cleanData(ref,cutoff)
+    species = list(ref.drop('nm',axis=1)) # each non 'nm' header is a species
+
+    # Input experimental file
+    exp, fileDict = readFile(filePath)
+    exp.rename(columns={exp.columns[0]: 'nm'}, inplace=True) # Treat 1st col as wavelengths
+    exp = cleanData(exp,cutoff)
+    timePoints = list(exp.drop('nm',axis=1))
+
+    # Check number of data cols
+    nCols = len(list(exp.drop('nm',axis=1)))
+    # If none, we have a problem
+    if nCols < 1:
+        raise Exception("Error: Don't have any data left")
+    elif nCols == 1: # If 1, run simple deconvolution
+        print("Running simple deconv")
+        exp.rename(columns={exp.columns[1]: 'data'}, inplace=True) # call 2nd column data
+        coeffs, perr = doFitting(ref.drop('nm',axis=1),exp.drop('nm',axis=1))
+        print(coeffs)
+    else:# If more than two, check if we are kinetic or replicate
+        if kinetic: # Do kinetic function
+            print("Running kinetic deconv")
+            kdf = kineticAnalysis()
+            print(kdf)
+        else: # Assume replicates
+            #If replicate, average all non-wavelength spectra into one
+            print("Running average of replicates deconv")
+            exp['data'] = exp[timePoints].mean(axis=1)
+            # Then perform deconvolution
+            coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
+            # Create a line of best fit using our results
+            exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
+            print(coeffs)
+            createPlot(exp,fileDict)
+
+    # Perform deconvolution against all relevant specrta
+    # Make dataframe of time, error, species composition
+    # create one column for each species
+
+        # Save numeric data (no file output yet)
+    # Afterwards, graph composition over time (from header) as scatter with error bars
+
+def doFitting(refCols,expCol):
+    k_init = np.ones_like(list(refCols)) # All initial guesses = 1
+    myBounds = (0,np.inf) # Coefficients between 0 and +infinity
+    coeffs, pcov = curve_fit(func, refCols.T, expCol, p0=k_init, bounds=myBounds)
+    # Extract error and coefficients from results
+    perr = np.sqrt(np.diag(pcov))
+    return coeffs, perr
+
+def createPlot(exp,fileDict):
+    #%% Plot results
+    fig, ax = plt.subplots(1,1)
+    ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
+    ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
+
+    ax.set_title(fileDict['name'])
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel('Absorbance')
+    ax.legend(loc=1)
+    #anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
+    #anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
+    #ax.add_artist(anchored_text)
+    #%% Save figure
+    #if savePng:
+    #    plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
+
+    #%% Output spectra file
+    #exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
+    #writer = pd.ExcelWriter(out_dir+'/'+myTitle+'_output.xlsx')
+    #exp.to_excel(writer, index=False)
+    #writer.save()
+    #exp.to_csv(out_dir+'/'+myTitle+'_output.dat',sep='\t',index=False)
+    plt.show()
+
+
+#%%
 def deconv(datafile, # List of file path strings
            reffile='refspec.dat', # Reference spectra
            norm=False,  # Normalize minimum value to 0
@@ -38,81 +182,14 @@ def deconv(datafile, # List of file path strings
     k_init = np.ones(n) # Initial guesses for coefficients (default 1)
 
     myBounds = (0,np.inf) # Limits for coefficients (non-neg)
-    
+
     # Take only evens between wavelength limits
     ref = ref[ref['nm'] >= nm_min]
     ref = ref[ref['nm'] <= nm_max]
     ref = ref[ref['nm'] % 2 == 0]
-    
-    # Define curve_fit function    
-    def func(X, *params):
-        return np.stack(params).dot(X)
 
-    def cleanData(df, nm_min, nm_max):
-        """
-        Inputs a dataframe of reference spectra as well as wavelength cutoffs.
-        Trims all data to be within the limits, and removes data points that don't match (odds)
-        """
-        # Take only evens between wavelength limits
-        df = df[df['nm'] >= nm_min]
-        df = df[df['nm'] <= nm_max]
-        df = df[df['nm'] % 2 == 0]
-        
-        return df
-    
-    def multiColDeconv(ref,exp):
-        """
-        Handle multiple columns of experimental data by treating it as 
-        1) Replicates of the same data points
-        2) Kinetic data over time
-        """
-        # Check how many columns we have
-        # Treat the first as wavelengths
-        exp.rename(columns={0:'nm'}, inplace=True)
-        
-        # If two, run deconvolution
-        
-        # If more than two, check if we are kinetic or replicate
-        # If replicate, average all non-wavelength spectra into one
-        timePoints = list(exp.drop('nm',axis=1))
-        exp['average'] = exp[timePoints].mean(axis=1)
-        
-        # Then perform deconvolution
-        
-        # If kinetic:
-        
-        # For each exp column:
-        # timePoints = list(exp.drop('nm',axis=1)) # list of all timepoints
-        
-        # Perform deconvolution against all relevant specrta
-        # Make dataframe of time, error, species composition
-        # create one column for each species
-        kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
-        kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
-        kdf.set_index('Time') # do we need this?
-        # make error columns
-        species_err = [sp + '_err' for sp in species]
-        kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
-        for timePoint in exp:
-            # Make call to curve_fit
-            coeffs, perr = doFitting(ref.drop('nm',axis=1).T, exp[timePoint])
-            # Extract error and coefficients from results
-            for sp,sp_e,coeff,sd in zip(species,species_err,coeffs,perr):
-                kdf[kdf['Time']==timePoint][sp] = coeff # each coefficient
-                kdf[kdf['Time']==timePoint][sp_e] = sd # each coefficient error
-        return kdf
 
-            # Save numeric data (no file output yet)
-        # Afterwards, graph composition over time (from header) as scatter with error bars
 
-    def doFitting(refCols,expCol):
-        coeffs, pcov = curve_fit(func, refCols, expCol, p0=k_init, bounds=myBounds)
-        # Extract error and coefficients from results
-        perr = np.sqrt(np.diag(pcov))
-        return coeffs, perr
-        
-        
-        
     # Do the following for each file we are given:
     for thisfile in datafile:
         # Figure out where in the world we are working
@@ -121,7 +198,7 @@ def deconv(datafile, # List of file path strings
         myDir = os.path.dirname(thisfile) # yields 'data/somebatch/'
         # Decide where output will go
         out_dir = myDir + '/' + 'output'
-        
+
         # Read the file
         # TODO: Make this its own function
         if myExt == ".dat" or myExt == ".txt" or myExt==".csv":
@@ -132,14 +209,14 @@ def deconv(datafile, # List of file path strings
             raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
 
         print("Running "+thisfile) # Announce file in case we crash during it
-        
+
         # Take only evens between wavelength limits
         exp = cleanData(exp)
-        
+
         # If desired, normalize to 0 (usually at 700)
         if norm:
             exp['A'] = exp['A']-np.min(exp['A'])
-        
+
         # Make call to curve_fit
         popt, pcov = curve_fit(func, ref.drop('nm',axis=1).T, exp['A'], p0=k_init, bounds=myBounds)
 
@@ -152,9 +229,9 @@ def deconv(datafile, # List of file path strings
         ss_r = np.sum((exp['A'] - exp['fit'])**2)
         ss_t = np.sum((exp['A'] - np.mean(exp['A']))**2)
         r2 = 1-(ss_r/ss_t)
-        
+
         # Print fit data and coefficients
-        
+
         tbox = r"$R^2$ fit: {:.5f}".format(r2)
         #%% Output text report
         if not os.path.exists(out_dir):
@@ -191,13 +268,13 @@ def deconv(datafile, # List of file path strings
         # Print output report to console
         print('\n'.join(tbody))
         # Print output report to .txt file
-        #f = open(out_dir+'/'+myTitle+'_output.txt','w')    
-        f = open(out_dir+'/'+myTitle+'_output.txt','w')      
+        #f = open(out_dir+'/'+myTitle+'_output.txt','w')
+        f = open(out_dir+'/'+myTitle+'_output.txt','w')
         f.write('\n'.join(tbody))
         f.close()
 
         #%% Plot results
-        
+
         fig, ax = plt.subplots(1,1)
         ax.plot(exp['nm'], exp['A'], 'b.-', label='data')
         ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
@@ -208,35 +285,15 @@ def deconv(datafile, # List of file path strings
         ax.legend(loc=1)
         anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
         anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
-        ax.add_artist(anchored_text)    
-        #%% Save figure 
+        ax.add_artist(anchored_text)
+        #%% Save figure
         if savePng:
             plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
-        
+
         #%% Output spectra file
         exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
         writer = pd.ExcelWriter(out_dir+'/'+myTitle+'_output.xlsx')
         exp.to_excel(writer, index=False)
         writer.save()
         #exp.to_csv(out_dir+'/'+myTitle+'_output.dat',sep='\t',index=False)
-        plt.show()    
-
-
-#%% If running file directly, do this
-if __name__ == '__main__':
-    pass
-    # These commands read all of the .dat files in the specified folder
-
-    #myData = glob.glob('data/ZIF_1-24-18/*.dat')
-    #allData = glob.glob('data/test/**/*.dat', recursive=True)
-    
-    # This is a list of commands used to create the majority of output so far
-    # I left them here just in case we want to re-run any
-    #deconv(datafile=myData,reffile='refspec.dat',except_species=['DeoxyHb','HbCO'])
-    
-    #deconv(datafile=allData,reffile='ref_offset.dat',except_species=['HbCO'], norm=False)
-    #deconv(datafile=myData,reffile='ref_offset.dat',except_species=['HbCO'], norm=False)
-"""
-Here is an example call to the function with a single file:
-deconv(datafile=['myExperimentalSpectra.dat'],reffile='refspec.dat',except_species=['DeoxyHb'])
-"""
+        plt.show()
