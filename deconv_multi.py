@@ -29,11 +29,19 @@ def readFile(filePath):
 
     # Read in the file
     if fileDict['ext'] in ['.dat','.txt','.csv']:
+        #head = pd.read_csv(filePath,'\t',nrows=0) # extract headers separately to fix bug with duplicate col names
+        #head.rename(columns={head.columns[0]: 'nm'}, inplace=True) # assume 1st col is wavelengths
         df = pd.read_csv(filePath,'\t')
     elif fileDict['ext'] in ['.xls','.xlsx']:
         df = pd.read_excel(filePath)
     else:
         raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
+
+    #mapping = {df.columns[0]:'nm', df.columns[1]: '0'} # Ugly fix for first 2 col names
+    df.rename(columns={df.columns[0]:'nm'}, inplace=True)
+    if df.columns[1] == '0.1':
+        # Bug fix for mangled 0 in first two col names
+        df.rename(columns={df.columns[1]:'0'}, inplace=True)
 
     return df, fileDict
 
@@ -46,6 +54,8 @@ def cleanData(df, cutoff):
     Inputs a dataframe of reference spectra as well as wavelength cutoffs.
     Trims all data to be within the limits, and removes data points that don't match (odds)
     """
+    # Treat 1st col as wavelengths
+    #df.rename(columns={df.columns[0]: 'nm'}, inplace=True) # done in readFile() now
     # Take only evens between wavelength limits
     df = df[df['nm'] >= cutoff[0]]
     df = df[df['nm'] <= cutoff[1]]
@@ -56,7 +66,8 @@ def cleanData(df, cutoff):
 def multiColDeconv(refPath='refspec.dat',
                    filePath='test_kinetic.dat',
                    kinetic=False,
-                   cutoff=(450,700)):
+                   cutoff=(450,700),
+                   flags={'Image':True, 'Text':True,'Excel':True}): # Output flags
     """
     Handle multiple columns of experimental data by treating it as
     1) Replicates of the same data points
@@ -65,56 +76,68 @@ def multiColDeconv(refPath='refspec.dat',
     def kineticAnalysis():
         kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
         kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
-        kdf.set_index('Time') # do we need this?
+        kdf = kdf.set_index('Time') # do we need this?
         # make error columns
         species_err = [sp + '_err' for sp in species]
+        species_perc = [sp + ' (%)' for sp in species] # % of total
         kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
-        for timePoint in exp:
+        for timePoint in timePoints:
             # Make call to curve_fit
-            coeffs, perr = doFitting(ref.drop('nm',axis=1).T, exp[timePoint])
+            coeffs, perr = doFitting(ref.drop('nm',axis=1), exp[timePoint])
             # Extract error and coefficients from results
-        for sp,sp_e,coeff,sd in zip(species,species_err,coeffs,perr):
-            kdf[kdf['Time']==timePoint][sp] = coeff # each coefficient
-            kdf[kdf['Time']==timePoint][sp_e] = sd # each coefficient error
+            for sp,sp_e,coeff,sd,sp_perc in zip(species,species_err,coeffs,perr, species_perc):
+                kdf.loc[timePoint,sp] = coeff # Actual coefficient
+                kdf.loc[timePoint,sp_e] = sd # Standard error
+                kdf.loc[timePoint,sp_perc] = coeff/sum(coeffs) # Percent of total composition
+        #kdf.sort_index(inplace=True) # Sort by time index
+        ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Fractional composition')
         return kdf
 
     # Input reference file
     ref, _ = readFile(refPath)
-    ref.rename(columns={ref.columns[0]: 'nm'}, inplace=True) # Treat 1st col as wavelengths
     ref = cleanData(ref,cutoff)
+    ignored_species = ['HbCO','Hemin','Hemichrome']
+    ignored_species=[]
+    ref = ref.drop(ignored_species, axis=1)
     species = list(ref.drop('nm',axis=1)) # each non 'nm' header is a species
 
     # Input experimental file
     exp, fileDict = readFile(filePath)
-    exp.rename(columns={exp.columns[0]: 'nm'}, inplace=True) # Treat 1st col as wavelengths
     exp = cleanData(exp,cutoff)
     timePoints = list(exp.drop('nm',axis=1))
+    print(timePoints)
 
     # Check number of data cols
     nCols = len(list(exp.drop('nm',axis=1)))
-    # If none, we have a problem
-    if nCols < 1:
-        raise Exception("Error: Don't have any data left")
+
+    if nCols < 1: # If none, we have a problem
+        raise Exception("Error: Can't find any data")
     elif nCols == 1: # If 1, run simple deconvolution
         print("Running simple deconv")
         exp.rename(columns={exp.columns[1]: 'data'}, inplace=True) # call 2nd column data
-        coeffs, perr = doFitting(ref.drop('nm',axis=1),exp.drop('nm',axis=1))
-        print(coeffs)
+        coeffs, perr = doFitting(ref.drop('nm',axis=1),exp['data'])
+        # Create a line of best fit using our results
+        exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
+        #print(coeffs)
+        plotStandard(exp,fileDict)
     else:# If more than two, check if we are kinetic or replicate
         if kinetic: # Do kinetic function
             print("Running kinetic deconv")
             kdf = kineticAnalysis()
-            print(kdf)
+            print("Done")
+            return kdf
         else: # Assume replicates
-            #If replicate, average all non-wavelength spectra into one
+            # Average all non-wavelength spectra into one
             print("Running average of replicates deconv")
             exp['data'] = exp[timePoints].mean(axis=1)
             # Then perform deconvolution
             coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
             # Create a line of best fit using our results
             exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
-            print(coeffs)
-            createPlot(exp,fileDict)
+            #print(coeffs)
+            plotReplicates(exp,fileDict)
 
     # Perform deconvolution against all relevant specrta
     # Make dataframe of time, error, species composition
@@ -131,7 +154,7 @@ def doFitting(refCols,expCol):
     perr = np.sqrt(np.diag(pcov))
     return coeffs, perr
 
-def createPlot(exp,fileDict):
+def plotStandard(exp,fileDict):
     #%% Plot results
     fig, ax = plt.subplots(1,1)
     ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
@@ -141,9 +164,15 @@ def createPlot(exp,fileDict):
     ax.set_xlabel('Wavelength (nm)')
     ax.set_ylabel('Absorbance')
     ax.legend(loc=1)
-    #anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
-    #anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
-    #ax.add_artist(anchored_text)
+
+    # Print fit data and coefficients
+    ss_r = np.sum((exp['data'] - exp['fit'])**2)
+    ss_t = np.sum((exp['data'] - np.mean(exp['data']))**2)
+    r2 = 1-(ss_r/ss_t)
+    tbox = r"$R^2$ fit: {:.5f}".format(r2)
+    anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
+    anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
+    ax.add_artist(anchored_text)
     #%% Save figure
     #if savePng:
     #    plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
@@ -156,6 +185,35 @@ def createPlot(exp,fileDict):
     #exp.to_csv(out_dir+'/'+myTitle+'_output.dat',sep='\t',index=False)
     plt.show()
 
+def plotReplicates(exp, fileDict):
+    fig, ax = plt.subplots(1,1)
+    exp['min'] = exp.drop(['nm','fit'],axis=1).min(axis=1)
+    exp['max'] = exp.drop(['nm','fit','min'],axis=1).max(axis=1)
+
+    ss_r = np.sum((exp['data'] - exp['fit'])**2)
+    ss_t = np.sum((exp['data'] - np.mean(exp['data']))**2)
+    r2 = 1-(ss_r/ss_t)
+
+    # Print fit data and coefficients
+    tbox = r"$R^2$ fit: {:.5f}".format(r2)
+    anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
+    anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
+    ax.add_artist(anchored_text)
+
+    # Fill between x, y1, y2
+    ax.fill_between(exp['nm'], exp['min'], exp['max'])
+    ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
+    ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
+
+    ax.set_title(fileDict['name'])
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel('Absorbance')
+    ax.legend(loc=1)
+    plt.show()
+
+def plotKinetic(kdf):
+
+    pass
 
 #%%
 def deconv(datafile, # List of file path strings
