@@ -29,18 +29,16 @@ def readFile(filePath):
 
     # Read in the file
     if fileDict['ext'] in ['.dat','.txt','.csv']:
-        #head = pd.read_csv(filePath,'\t',nrows=0) # extract headers separately to fix bug with duplicate col names
-        #head.rename(columns={head.columns[0]: 'nm'}, inplace=True) # assume 1st col is wavelengths
         df = pd.read_csv(filePath,'\t')
     elif fileDict['ext'] in ['.xls','.xlsx']:
         df = pd.read_excel(filePath)
     else:
         raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
 
-    #mapping = {df.columns[0]:'nm', df.columns[1]: '0'} # Ugly fix for first 2 col names
     df.rename(columns={df.columns[0]:'nm'}, inplace=True)
     if df.columns[1] == '0.1':
         # Bug fix for mangled 0 in first two col names
+        # '0,0' -> '0,0.1' -> 'nm, 0'
         df.rename(columns={df.columns[1]:'0'}, inplace=True)
 
     return df, fileDict
@@ -66,8 +64,11 @@ def cleanData(df, cutoff):
 def multiColDeconv(refPath='refspec.dat',
                    filePath='test_kinetic.dat',
                    kinetic=False,
-                   cutoff=(450,700),
-                   flags={'Image':True, 'Text':True,'Excel':True}): # Output flags
+                   flags={'Image':True,  # Output flags
+                          'Text':True,
+                          'Excel':True,
+                          'Operator':'',
+                          'Cutoff':(450,700)}):
     """
     Handle multiple columns of experimental data by treating it as
     1) Replicates of the same data points
@@ -97,7 +98,7 @@ def multiColDeconv(refPath='refspec.dat',
 
     # Input reference file
     ref, _ = readFile(refPath)
-    ref = cleanData(ref,cutoff)
+    ref = cleanData(ref,flags['Cutoff'])
     ignored_species = ['HbCO','Hemin','Hemichrome']
     ignored_species=[]
     ref = ref.drop(ignored_species, axis=1)
@@ -105,7 +106,7 @@ def multiColDeconv(refPath='refspec.dat',
 
     # Input experimental file
     exp, fileDict = readFile(filePath)
-    exp = cleanData(exp,cutoff)
+    exp = cleanData(exp,flags['Cutoff'])
     timePoints = list(exp.drop('nm',axis=1))
     print(timePoints)
 
@@ -121,7 +122,7 @@ def multiColDeconv(refPath='refspec.dat',
         # Create a line of best fit using our results
         exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
         #print(coeffs)
-        plotStandard(exp,fileDict)
+        plotStandard(exp,fileDict,flags)
     else:# If more than two, check if we are kinetic or replicate
         if kinetic: # Do kinetic function
             print("Running kinetic deconv")
@@ -137,7 +138,7 @@ def multiColDeconv(refPath='refspec.dat',
             # Create a line of best fit using our results
             exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
             #print(coeffs)
-            plotReplicates(exp,fileDict)
+            plotReplicates(exp,fileDict,flags)
 
     # Perform deconvolution against all relevant specrta
     # Make dataframe of time, error, species composition
@@ -154,8 +155,7 @@ def doFitting(refCols,expCol):
     perr = np.sqrt(np.diag(pcov))
     return coeffs, perr
 
-def plotStandard(exp,fileDict):
-    #%% Plot results
+def plotStandard(exp,fileDict,flags):
     fig, ax = plt.subplots(1,1)
     ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
     ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
@@ -177,19 +177,11 @@ def plotStandard(exp,fileDict):
     ax.set_title(fileDict['name'])
     ax.set_xlabel('Wavelength (nm)')
     ax.set_ylabel('Absorbance')
-    #%% Save figure
-    #if savePng:
-    #    plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
-
-    #%% Output spectra file
-    #exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
-    #writer = pd.ExcelWriter(out_dir+'/'+myTitle+'_output.xlsx')
-    #exp.to_excel(writer, index=False)
-    #writer.save()
-    #exp.to_csv(out_dir+'/'+myTitle+'_output.dat',sep='\t',index=False)
+    if flags['Image']:
+        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
     plt.show()
 
-def plotReplicates(exp, fileDict):
+def plotReplicates(exp, fileDict, flags):
     fig, ax = plt.subplots(1,1)
     exp['min'] = exp.drop(['nm','fit'],axis=1).min(axis=1)
     exp['max'] = exp.drop(['nm','fit','min'],axis=1).max(axis=1)
@@ -213,11 +205,60 @@ def plotReplicates(exp, fileDict):
     ax.set_xlabel('Wavelength (nm)')
     ax.set_ylabel('Absorbance')
     ax.legend(loc=1)
+    if flags['Image']:
+        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
     plt.show()
 
 def plotKinetic(kdf):
 
     pass
+
+def printResultsExcel(df, fileDict):
+    if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
+    writer = pd.ExcelWriter(fileDict['outDir']+'/'+fileDict['name']+'_output.xlsx')
+    df.to_excel(writer, index=False)
+    writer.save()
+    
+def printResultsText(fileDict,flags):
+    if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
+    tbody = ["Curve fitting report",
+             "Using scipy.optimize.curve_fit (non-linear least squares regression)",
+             "Version 1.1.0 \t Richard Hickey \t Ohio State University",
+             ""]
+    tbody += ["Sample: \t"+fileDict['name'],
+              "Filename: \t"+fileDict['name.ext'],
+              "Reference: \t"+reffile,
+              "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
+              "Operator: \t"+flags['Operator']]
+    if norm:
+        tbody += ["Normalized to lowest value = 0"]
+    tbody += [""]
+    tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
+    for sp,conc,sd in zip(species,concs,perr):
+        cpercent = 100*conc/sum(concs)
+        if conc< 0.000001:
+            sdpercent = 0
+        else:
+            sdpercent = 100 * sd / conc
+        tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
+        tbody += [sp+"\t{:.6f} ({:.2f}%)".format(conc,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
+    tbody += ["",
+              "Fit data:",
+              "Sum of squares (residual) = "+str(ss_r),
+              "Sum of squares (total) = "+str(ss_t),
+              "R-squared = "+str(r2)]
+    tbody += ["",
+              "* Standard error being defined as the diagonal of the square root of the coefficient covariance matrix. The covariance matrix appears below.",
+              str(pcov)]
+    # Print output report to console
+    print('\n'.join(tbody))
+    # Print output report to .txt file
+    #f = open(out_dir+'/'+myTitle+'_output.txt','w')
+    f = open(fileDict['outDir']+'/'+fileDict['name']+'_output.txt','w')
+    f.write('\n'.join(tbody))
+    f.close()
 
 #%%
 def deconv(datafile, # List of file path strings
@@ -262,7 +303,6 @@ def deconv(datafile, # List of file path strings
         out_dir = myDir + '/' + 'output'
 
         # Read the file
-        # TODO: Make this its own function
         if myExt == ".dat" or myExt == ".txt" or myExt==".csv":
             exp = pd.read_csv(thisfile,'\t')
         elif myExt == ".xls" or myExt == ".xlsx":
@@ -353,7 +393,7 @@ def deconv(datafile, # List of file path strings
             plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
 
         #%% Output spectra file
-        exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
+        #exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
         writer = pd.ExcelWriter(out_dir+'/'+myTitle+'_output.xlsx')
         exp.to_excel(writer, index=False)
         writer.save()
