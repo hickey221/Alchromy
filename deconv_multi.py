@@ -173,6 +173,10 @@ def plotStandard(exp,fileDict):
     anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
     anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
     ax.add_artist(anchored_text)
+
+    ax.set_title(fileDict['name'])
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel('Absorbance')
     #%% Save figure
     #if savePng:
     #    plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
