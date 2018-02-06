@@ -20,6 +20,7 @@ def readFile(filePath):
     Reads in a csv or spreadsheet file. Returns a dataframe with data, and
     a dict with file information
     """
+    print('Looking at ',filePath)
     # Analyze the file path and save important parts
     fileDict = {'fullPath': filePath} # Initialize dict with given path
     fileDict['name.ext'] = os.path.basename(filePath) # yields 'filename.ext'
@@ -63,11 +64,13 @@ def cleanData(df, cutoff):
 
 def multiColDeconv(refPath='refspec.dat',
                    filePath='test_kinetic.dat',
-                   kinetic=False,
+                   ignored=[],
                    flags={'Image':True,  # Output flags
                           'Text':True,
                           'Excel':True,
+                          'Kinetic':False,
                           'Operator':'',
+                          'Normalize':False,
                           'Cutoff':(450,700)}):
     """
     Handle multiple columns of experimental data by treating it as
@@ -99,9 +102,7 @@ def multiColDeconv(refPath='refspec.dat',
     # Input reference file
     ref, _ = readFile(refPath)
     ref = cleanData(ref,flags['Cutoff'])
-    ignored_species = ['HbCO','Hemin','Hemichrome']
-    ignored_species=[]
-    ref = ref.drop(ignored_species, axis=1)
+    ref = ref.drop(ignored, axis=1)
     species = list(ref.drop('nm',axis=1)) # each non 'nm' header is a species
 
     # Input experimental file
@@ -124,7 +125,7 @@ def multiColDeconv(refPath='refspec.dat',
         #print(coeffs)
         plotStandard(exp,fileDict,flags)
     else:# If more than two, check if we are kinetic or replicate
-        if kinetic: # Do kinetic function
+        if flags['Kinetic']: # Do kinetic function
             print("Running kinetic deconv")
             kdf = kineticAnalysis()
             print("Done")
@@ -139,6 +140,12 @@ def multiColDeconv(refPath='refspec.dat',
             exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
             #print(coeffs)
             plotReplicates(exp,fileDict,flags)
+            
+    # Report status of completed run
+    # TODO: Add more options for error codes
+    statusReport = {'Code': 0, 'Message': 'Finished without incident'} # No problems
+    
+    return statusReport
 
     # Perform deconvolution against all relevant specrta
     # Make dataframe of time, error, species composition
@@ -178,6 +185,8 @@ def plotStandard(exp,fileDict,flags):
     ax.set_xlabel('Wavelength (nm)')
     ax.set_ylabel('Absorbance')
     if flags['Image']:
+        if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
         plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
     plt.show()
 
@@ -206,6 +215,8 @@ def plotReplicates(exp, fileDict, flags):
     ax.set_ylabel('Absorbance')
     ax.legend(loc=1)
     if flags['Image']:
+        if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
         plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
     plt.show()
 
@@ -232,7 +243,7 @@ def printResultsText(fileDict,flags):
               "Reference: \t"+reffile,
               "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
               "Operator: \t"+flags['Operator']]
-    if norm:
+    if flags['Normalize']:
         tbody += ["Normalized to lowest value = 0"]
     tbody += [""]
     tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
