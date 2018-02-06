@@ -18,7 +18,7 @@ from tkinter import ttk, filedialog, messagebox
 import pandas as pd
 import glob
 import os
-import deconv
+import deconv_multi
 import time
 
 #%% "About" dialog box
@@ -110,6 +110,13 @@ enterDir = T.Entry(root, textvariable=dirPath)
 enterDir.grid(row=2, column=1, sticky="w")
 buttonBrowseDir = T.Button(root,text="Browse",command=browseForDir)
 buttonBrowseDir.grid(row=2,column=2)
+
+#%% Kinetic vs replicate
+kinetic = T.BooleanVar(root,value=False)
+radioReplicate = T.Radiobutton(root,text="Replicate",variable=kinetic, value=False)
+radioReplicate.grid(row=3, column=0, sticky='w')
+radioKinetic = T.Radiobutton(root,text="Kinetic",variable=kinetic, value=True)
+radioKinetic.grid(row=3, column=1, sticky='w')
 
 #%% Output options
 outGraph = T.BooleanVar(root,value=True)
@@ -233,7 +240,7 @@ def launchDeconv():
     # Decide what file we're using
     if fileVsDir.get()==1:
         #dataFile = filePath.get()
-        allFiles = [glob.glob(filePath.get())]
+        allFiles = glob.glob(filePath.get())
         
     # Check setting for ignored columns
     ignored_species = list(l_cols_unused.get(0,T.END))
@@ -258,11 +265,21 @@ def launchDeconv():
     # For each file we have
     for eachFile in allFiles:
         statusUpdate("Reading file: "+str(eachFile))
-        deconv.deconv(eachFile,reffile=refPath.get(),except_species=ignored_species,nm_min=nmMinInt, nm_max=nmMaxInt, opID=opID.get())
+        flags={'Image':True,  # Output flags
+               'Text':True,
+               'Excel':True,
+               'Kinetic':False,
+               'Operator':opID.get(),
+               'Normalize':False,
+               'Cutoff':(450,700)}
+        ###################################
+        statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),filePath=eachFile, ignored=ignored_species, flags=flags)
+        ###################################
         # Update progress bar
         pBar['value'] += barStep
         pBar.update()
         time.sleep(1)
+        statusUpdate(statusReport['Message'])
 
     # When finished, announce it
     statusUpdate("Done!")
