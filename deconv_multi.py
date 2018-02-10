@@ -129,7 +129,7 @@ def multiColDeconv(refPath='refspec.dat',
             print("Running kinetic deconv")
             kdf = kineticAnalysis()
             print("Done")
-            return kdf
+            #return kdf
         else: # Assume replicates
             # Average all non-wavelength spectra into one
             print("Running average of replicates deconv")

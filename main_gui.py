@@ -21,9 +21,10 @@ import os
 import deconv_multi
 import time
 
+versionNumber = "1.2.0"
 #%% "About" dialog box
 def aboutBox():
-    messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nVersion 1.1.0\nRichard Hickey\nOhio State University\n2018")
+    messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
 
 
 #%% Title, initialization and menubar
@@ -262,18 +263,21 @@ def launchDeconv():
     
     # Figure out status bar increments
     barStep = round(100/len(allFiles))
-    # For each file we have
-    for eachFile in allFiles:
-        statusUpdate("Reading file: "+str(eachFile))
-        flags={'Image':True,  # Output flags
+    flags={'Image':True,  # Output flags
                'Text':True,
                'Excel':True,
-               'Kinetic':False,
+               'Kinetic':kinetic.get(),
                'Operator':opID.get(),
                'Normalize':False,
                'Cutoff':(450,700)}
+    # For each file we have
+    for eachFile in allFiles:
+        statusUpdate("Reading file: "+str(eachFile))
         ###################################
-        statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),filePath=eachFile, ignored=ignored_species, flags=flags)
+        statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),
+                                                  filePath=eachFile, 
+                                                  ignored=ignored_species, 
+                                                  flags=flags)
         ###################################
         # Update progress bar
         pBar['value'] += barStep
