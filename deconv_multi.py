@@ -97,6 +97,7 @@ def multiColDeconv(refPath='refspec.dat',
         ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
         ax.set_xlabel('Time')
         ax.set_ylabel('Fractional composition')
+        plt.show()
         return kdf
 
     # Input reference file
