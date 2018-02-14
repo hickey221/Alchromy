@@ -63,7 +63,7 @@ def cleanData(df, cutoff):
     return df
 
 def multiColDeconv(refPath='refspec.dat',
-                   filePath='test_kinetic.dat',
+                   filePath='',
                    ignored=[],
                    flags={'Image':True,  # Output flags
                           'Text':True,
@@ -99,7 +99,9 @@ def multiColDeconv(refPath='refspec.dat',
         ax.set_ylabel('Fractional composition')
         plt.show()
         return kdf
-
+    print("working on",filePath)
+    if filePath=='':
+        return {'Code': 1, 'Message': 'No file found'}
     # Input reference file
     ref, _ = readFile(refPath)
     ref = cleanData(ref,flags['Cutoff'])
