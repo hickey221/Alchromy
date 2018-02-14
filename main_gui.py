@@ -24,7 +24,7 @@ import time
 versionNumber = "1.2.0"
 #%% "About" dialog box
 def aboutBox():
-    messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
+    messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
 
 
 #%% Title, initialization and menubar
@@ -48,6 +48,8 @@ aboutmenu.add_command(label="About",command=aboutBox)
 menubar.add_cascade(label="Help", menu=aboutmenu)
 root.config(menu=menubar)
 
+# Disable window resize
+root.resizable(0,0)
 
 #%% File and directory browsing
 
@@ -115,9 +117,9 @@ buttonBrowseDir.grid(row=2,column=2)
 #%% Kinetic vs replicate
 kinetic = T.BooleanVar(root,value=False)
 radioReplicate = T.Radiobutton(root,text="Replicate",variable=kinetic, value=False)
-radioReplicate.grid(row=3, column=0, sticky='w')
+radioReplicate.grid(row=5, column=3, sticky='w')
 radioKinetic = T.Radiobutton(root,text="Kinetic",variable=kinetic, value=True)
-radioKinetic.grid(row=3, column=1, sticky='w')
+radioKinetic.grid(row=5, column=4, columnspan=2, sticky='w')
 
 #%% Output options
 outGraph = T.BooleanVar(root,value=True)
@@ -258,21 +260,24 @@ def launchDeconv():
         return
         
     # Print out to status box
-    statusUpdate("Have files "+str(allFiles))
+    statusUpdate("Running "+str(len(allFiles))+" files.")
     statusUpdate("Ignoring: "+str(ignored_species))
     
     # Figure out status bar increments
-    barStep = round(100/len(allFiles))
-    flags={'Image':True,  # Output flags
-               'Text':True,
-               'Excel':True,
+    if len(allFiles)>0:
+        barStep = round(100/len(allFiles))
+    else:
+        barStep=0
+    flags={'Image':outGraph.get(),  # Output flags
+               'Text':outTxt.get(),
+               'Excel':outSpectra.get(),
                'Kinetic':kinetic.get(),
                'Operator':opID.get(),
                'Normalize':False,
-               'Cutoff':(450,700)}
+               'Cutoff':(nmMinInt,nmMaxInt)}
     # For each file we have
     for eachFile in allFiles:
-        statusUpdate("Reading file: "+str(eachFile))
+        statusUpdate("Reading file: "+os.path.basename(str(eachFile)))
         ###################################
         statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),
                                                   filePath=eachFile, 
@@ -283,7 +288,10 @@ def launchDeconv():
         pBar['value'] += barStep
         pBar.update()
         time.sleep(1)
-        statusUpdate(statusReport['Message'])
+        if statusReport['Code'] == 0:    
+            statusUpdate(statusReport['Message'])
+        else:
+            statusUpdate('Quit with error code: '+statusReport['Code']+': '+statusReport['Message'])
 
     # When finished, announce it
     statusUpdate("Done!")
@@ -292,17 +300,17 @@ def launchDeconv():
 bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv)
 bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
 
-# Progres bar
+#%% Progres bar
 pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=200,mode='determinate')
-pBar.grid(row=6, column=5, columnspan=2, sticky='s')
+pBar.grid(row=6, column=6, columnspan=3)
 
-# status box
+#%% status box
 def statusUpdate(phrase):
     statusBox.insert(T.END,phrase+"\n")
     statusBox.yview_moveto(1)
     
 statusBox = T.Text(root, height=10, width=40)
-statusBox.grid(row=7,column=5,columnspan=3,rowspan=2)
+statusBox.grid(row=7,column=6,columnspan=3,rowspan=2)
 
 #%% Make some defafult changes
 # default dir off
