@@ -23,6 +23,7 @@
 **/logs
 **/data
 **/__pycache__
+**/output
 
 # Logs and databases #
 ######################
