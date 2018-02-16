@@ -85,15 +85,15 @@ def browseForFile():
         #statusUpdate("Found ### waveforms.")
     enterFile.update()
     enterFile.xview_moveto(1)
-    
+
 def browseForDir():
     global allFiles
     newPath = filedialog.askdirectory()
     if newPath:
-        dirPath.set(newPath)        
+        dirPath.set(newPath)
         statusUpdate("Using dir /"+os.path.split(dirPath.get())[1]+"/")
         allFiles = glob.glob(dirPath.get()+"/*.dat")
-        
+
         statusBox.insert(T.END,"Found "+str(len(allFiles))+" files.\n")
     enterDir.update()
     enterDir.xview_moveto(1)
@@ -144,8 +144,8 @@ r_spectra_n.grid(row=3, column=5, sticky='w')
 
 #%% Wavelength select
 
-nmMin = T.StringVar(value="450") 
-nmMax = T.StringVar(value="700") 
+nmMin = T.StringVar(value="450")
+nmMax = T.StringVar(value="700")
 T.Label(root, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
 
 e_nmMin = T.Entry(root, textvariable=nmMin, width=6).grid(row=4, column=4, sticky='w')
@@ -169,9 +169,9 @@ def getRefCols(filePath='refspec.dat'):
     for item in species:
         l_cols_used.insert(T.END,item)
 
-    statusUpdate("Using reference "+os.path.basename(filePath))        
-    statusUpdate("Found " + str(len(species)) + " waves.") 
-    
+    statusUpdate("Using reference "+os.path.basename(filePath))
+    statusUpdate("Found " + str(len(species)) + " waves.")
+
 def useCustomRef():
     e_ref.configure(state="normal")
     b_ref.configure(state="normal")
@@ -239,12 +239,12 @@ def launchDeconv():
     global nmMin
     global nmMax
     pBar['value'] = 0
-    
+
     # Decide what file we're using
     if fileVsDir.get()==1:
         #dataFile = filePath.get()
         allFiles = glob.glob(filePath.get())
-        
+
     # Check setting for ignored columns
     ignored_species = list(l_cols_unused.get(0,T.END))
     # Get and check wavelengths
@@ -254,41 +254,44 @@ def launchDeconv():
     except:
         statusUpdate("Error in wavelengths")
         return
-    
+
     if nmMinInt > nmMaxInt:
         statusUpdate("Error, minimum too high\n")
         return
-        
+
     # Print out to status box
     statusUpdate("Running "+str(len(allFiles))+" files.")
     statusUpdate("Ignoring: "+str(ignored_species))
-    
+
     # Figure out status bar increments
     if len(allFiles)>0:
         barStep = round(100/len(allFiles))
     else:
         barStep=0
+        statusUpdate("No files found, aborting...")
+        return
     flags={'Image':outGraph.get(),  # Output flags
                'Text':outTxt.get(),
                'Excel':outSpectra.get(),
                'Kinetic':kinetic.get(),
                'Operator':opID.get(),
                'Normalize':False,
+               'Verbose':True,
                'Cutoff':(nmMinInt,nmMaxInt)}
     # For each file we have
     for eachFile in allFiles:
         statusUpdate("Reading file: "+os.path.basename(str(eachFile)))
-        ###################################
+        ########################################################################
         statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),
-                                                  filePath=eachFile, 
-                                                  ignored=ignored_species, 
+                                                  filePath=eachFile,
+                                                  ignored=ignored_species,
                                                   flags=flags)
-        ###################################
+        ########################################################################
         # Update progress bar
         pBar['value'] += barStep
         pBar.update()
         time.sleep(1)
-        if statusReport['Code'] == 0:    
+        if statusReport['Code'] == 0:
             statusUpdate(statusReport['Message'])
         else:
             statusUpdate('Quit with error code: '+statusReport['Code']+': '+statusReport['Message'])
@@ -308,7 +311,7 @@ pBar.grid(row=6, column=6, columnspan=3)
 def statusUpdate(phrase):
     statusBox.insert(T.END,phrase+"\n")
     statusBox.yview_moveto(1)
-    
+
 statusBox = T.Text(root, height=10, width=40)
 statusBox.grid(row=7,column=6,columnspan=3,rowspan=2)
 

@@ -71,13 +71,16 @@ def multiColDeconv(refPath='refspec.dat',
                           'Kinetic':False,
                           'Operator':'',
                           'Normalize':False,
+                          'Verbose':False,
                           'Cutoff':(450,700)}):
     """
     Handle multiple columns of experimental data by treating it as
     1) Replicates of the same data points
     2) Kinetic data over time
     """
-    def kineticAnalysis():
+    def kineticAnalysis(flags):
+        if flags['Verbose']:
+            print("Running kinetic analysis")
         kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
         kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
         kdf = kdf.set_index('Time') # do we need this?
@@ -99,8 +102,10 @@ def multiColDeconv(refPath='refspec.dat',
         ax.set_ylabel('Fractional composition')
         plt.show()
         return kdf
-    print("working on",filePath)
-    if filePath=='':
+
+    if flags['Verbose']:
+        print("working on",filePath)
+    if len(filePath)==0:
         return {'Code': 1, 'Message': 'No file found'}
     # Input reference file
     ref, _ = readFile(refPath)
@@ -112,42 +117,49 @@ def multiColDeconv(refPath='refspec.dat',
     exp, fileDict = readFile(filePath)
     exp = cleanData(exp,flags['Cutoff'])
     timePoints = list(exp.drop('nm',axis=1))
-    print(timePoints)
 
     # Check number of data cols
     nCols = len(list(exp.drop('nm',axis=1)))
 
+    if flags['Verbose']:
+        print("Found species",species)
+        print("Found",nCols,"columns of data")
+        print("Have data column headers",timePoints)
+
     if nCols < 1: # If none, we have a problem
         raise Exception("Error: Can't find any data")
     elif nCols == 1: # If 1, run simple deconvolution
-        print("Running simple deconv")
-        exp.rename(columns={exp.columns[1]: 'data'}, inplace=True) # call 2nd column data
+        # If there's only 1 data column, name it 'data'
+        exp.rename(columns={exp.columns[1]: 'data'}, inplace=True)
+        # Call curve fitting function
         coeffs, perr = doFitting(ref.drop('nm',axis=1),exp['data'])
         # Create a line of best fit using our results
         exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
-        #print(coeffs)
+        if flags['Verbose']:
+            print("Finished with coefficients",coeffs)
         plotStandard(exp,fileDict,flags)
     else:# If more than two, check if we are kinetic or replicate
         if flags['Kinetic']: # Do kinetic function
-            print("Running kinetic deconv")
-            kdf = kineticAnalysis()
+            kdf = kineticAnalysis(flags)
             print("Done")
             #return kdf
         else: # Assume replicates
+            if flags['Verbose']:
+                print("Running average of replicates deconv")
             # Average all non-wavelength spectra into one
-            print("Running average of replicates deconv")
             exp['data'] = exp[timePoints].mean(axis=1)
             # Then perform deconvolution
             coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
             # Create a line of best fit using our results
             exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
-            #print(coeffs)
+            if flags['Verbose']:
+                print("Finished with coefficients",coeffs)
             plotReplicates(exp,fileDict,flags)
-            
+
     # Report status of completed run
     # TODO: Add more options for error codes
     statusReport = {'Code': 0, 'Message': 'Finished without incident'} # No problems
-    
+
     return statusReport
 
     # Perform deconvolution against all relevant specrta
@@ -165,7 +177,7 @@ def doFitting(refCols,expCol):
     perr = np.sqrt(np.diag(pcov))
     return coeffs, perr
 
-def plotStandard(exp,fileDict,flags):
+def plotStandard(exp, fileDict, flags):
     fig, ax = plt.subplots(1,1)
     ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
     ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
@@ -191,7 +203,9 @@ def plotStandard(exp,fileDict,flags):
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
         plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
-    plt.show()
+    if flags['Verbose']:
+        print("Finished, plotting image")
+        plt.show()
 
 def plotReplicates(exp, fileDict, flags):
     fig, ax = plt.subplots(1,1)
@@ -221,7 +235,9 @@ def plotReplicates(exp, fileDict, flags):
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
         plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
-    plt.show()
+    if flags['Verbose']:
+        print("Finished, plotting image")
+        plt.show()
 
 def plotKinetic(kdf):
 
@@ -233,7 +249,7 @@ def printResultsExcel(df, fileDict):
     writer = pd.ExcelWriter(fileDict['outDir']+'/'+fileDict['name']+'_output.xlsx')
     df.to_excel(writer, index=False)
     writer.save()
-    
+
 def printResultsText(fileDict,flags):
     if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
