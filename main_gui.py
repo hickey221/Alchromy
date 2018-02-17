@@ -4,15 +4,19 @@ Alchromy main executable
 
 Richard Hickey
 
+Alchromy is a tool for spectral deconvolution of data from UV-Vis analysis
+machines. Compares an experimental spectrum to a set of spectra from known,
+pure samples. Designed to seperate 
 
 TODO: Documentation
 TODO: Icon
 TODO: Error handling
+TODO: Add deconvolution description to the readme
 TODO: Capture output from deconv and send to GUI
 TODO: Input multiple waves from one file
 """
 
-# Python 3
+# Requires Python 3.x
 import tkinter as T
 from tkinter import ttk, filedialog, messagebox
 import pandas as pd
@@ -98,7 +102,7 @@ def browseForDir():
     enterDir.update()
     enterDir.xview_moveto(1)
 
-T.Label(root, text="Input file(s)").grid(row=0, column=0,columnspan=2)
+T.Label(root, text="Input file(s)").grid(row=0, column=0,columnspan=3)
 
 radioFile = T.Radiobutton(root,text="Select File",variable=fileVsDir, value=1,command=useFile)
 radioFile.grid(row=1, column=0, sticky='w')
@@ -116,17 +120,36 @@ buttonBrowseDir.grid(row=2,column=2)
 
 #%% Kinetic vs replicate
 kinetic = T.BooleanVar(root,value=False)
+T.Label(root, text="Treat multiple columns as").grid(row=5, column=3, sticky='w')
 radioReplicate = T.Radiobutton(root,text="Replicate",variable=kinetic, value=False)
-radioReplicate.grid(row=5, column=3, sticky='w')
+radioReplicate.grid(row=5, column=4, sticky='w')
 radioKinetic = T.Radiobutton(root,text="Kinetic",variable=kinetic, value=True)
-radioKinetic.grid(row=5, column=4, columnspan=2, sticky='w')
+radioKinetic.grid(row=5, column=5, columnspan=2, sticky='w')
+
+#%% Normalize
+normalize = T.BooleanVar(root,value=False)
+T.Label(root, text="Normalize data to 0").grid(row=6, column=3, sticky='w')
+radioNormYes = T.Radiobutton(root,text="Yes",variable=normalize, value=True)
+radioNormYes.grid(row=6, column=4, sticky='w')
+radioNormYes.configure(state="disabled")
+radioNormNo = T.Radiobutton(root,text="No",variable=normalize, value=False)
+radioNormNo.grid(row=6, column=5, columnspan=2, sticky='w')
+radioNormNo.configure(state="disabled")
+
+#%% Verbose output
+verbose = T.BooleanVar(root,value=False)
+T.Label(root, text="Verbose debug output").grid(row=7, column=3, sticky='nw')
+radioVerboseYes = T.Radiobutton(root,text="Yes",variable=verbose, value=True)
+radioVerboseYes.grid(row=7, column=4, sticky='nw')
+radioVerboseNo = T.Radiobutton(root,text="No",variable=verbose, value=False)
+radioVerboseNo.grid(row=7, column=5, columnspan=2, sticky='nw')
 
 #%% Output options
 outGraph = T.BooleanVar(root,value=True)
 outTxt = T.BooleanVar(root,value=True)
 outSpectra = T.BooleanVar(root,value=True)
 
-T.Label(root, text="Output options").grid(row=0, column=3,columnspan=2)
+T.Label(root, text="Output options").grid(row=0, column=3,columnspan=3)
 
 T.Label(root, text="Graph (.png)").grid(row=1, column=3, sticky='w')
 r_graph_y = T.Radiobutton(root,text="Yes",variable=outGraph,value=True).grid(row=1, column=4, sticky='w')
@@ -143,14 +166,11 @@ r_spectra_n = T.Radiobutton(root,text="No",variable=outSpectra,value=False)
 r_spectra_n.grid(row=3, column=5, sticky='w')
 
 #%% Wavelength select
-
 nmMin = T.StringVar(value="450")
 nmMax = T.StringVar(value="700")
 T.Label(root, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
-
-e_nmMin = T.Entry(root, textvariable=nmMin, width=6).grid(row=4, column=4, sticky='w')
-e_nmMax = T.Entry(root, textvariable=nmMax, width=6).grid(row=4, column=5, sticky='w')
-
+e_nmMin = T.Entry(root, textvariable=nmMin, width=8).grid(row=4, column=4, sticky='w')
+e_nmMax = T.Entry(root, textvariable=nmMax, width=8).grid(row=4, column=5, sticky='w')
 
 #%% Specify reference spectra
 
@@ -246,7 +266,7 @@ def launchDeconv():
         allFiles = glob.glob(filePath.get())
 
     # Check setting for ignored columns
-    ignored_species = list(l_cols_unused.get(0,T.END))
+    ignored = list(l_cols_unused.get(0,T.END))
     # Get and check wavelengths
     try:
         nmMinInt = int(nmMin.get())
@@ -261,7 +281,7 @@ def launchDeconv():
 
     # Print out to status box
     statusUpdate("Running "+str(len(allFiles))+" files.")
-    statusUpdate("Ignoring: "+str(ignored_species))
+    statusUpdate("Ignoring: "+str(ignored))
 
     # Figure out status bar increments
     if len(allFiles)>0:
@@ -275,18 +295,18 @@ def launchDeconv():
                'Excel':outSpectra.get(),
                'Kinetic':kinetic.get(),
                'Operator':opID.get(),
-               'Normalize':False,
-               'Verbose':True,
+               'Normalize':normalize.get(),
+               'Verbose':verbose.get(),
                'Cutoff':(nmMinInt,nmMaxInt)}
     # For each file we have
     for eachFile in allFiles:
         statusUpdate("Reading file: "+os.path.basename(str(eachFile)))
-        ########################################################################
+        #######################################################################
         statusReport= deconv_multi.multiColDeconv(refPath=refPath.get(),
                                                   filePath=eachFile,
-                                                  ignored=ignored_species,
+                                                  ignored=ignored,
                                                   flags=flags)
-        ########################################################################
+        #######################################################################
         # Update progress bar
         pBar['value'] += barStep
         pBar.update()
@@ -304,7 +324,7 @@ bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv
 bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
 
 #%% Progres bar
-pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=200,mode='determinate')
+pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=300,mode='determinate')
 pBar.grid(row=6, column=6, columnspan=3)
 
 #%% status box
