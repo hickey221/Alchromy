@@ -1,4 +1,7 @@
 # Alchromy
+
+![Alchromy GUI](snapshot.png?raw=true "Title")
+
 ## Introduction
 Welcome to Alchromy! This package is designed to perform spectral deconvolution on waveforms obtained from UV-Vis spectrometry. It was designed for identification of different hemoglobin species in complex mixtures. It is currently in a closed beta testing phase, so expect many changes going forward.
 
