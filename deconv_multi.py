@@ -117,7 +117,8 @@ def multiColDeconv(refPath='refspec.dat',
     exp, fileDict = readFile(filePath)
     exp = cleanData(exp,flags['Cutoff'])
     timePoints = list(exp.drop('nm',axis=1))
-
+    fileDict['Reference'] = ref
+    
     # Check number of data cols
     nCols = len(list(exp.drop('nm',axis=1)))
 
@@ -131,6 +132,9 @@ def multiColDeconv(refPath='refspec.dat',
     elif nCols == 1: # If 1, run simple deconvolution
         # If there's only 1 data column, name it 'data'
         exp.rename(columns={exp.columns[1]: 'data'}, inplace=True)
+        if flags['Normalize']:
+            print("Normalizing data")
+            exp['data'] = exp['data']-np.min(exp['data'])
         # Call curve fitting function
         coeffs, perr = doFitting(ref.drop('nm',axis=1),exp['data'])
         # Create a line of best fit using our results
@@ -138,6 +142,8 @@ def multiColDeconv(refPath='refspec.dat',
         if flags['Verbose']:
             print("Finished with coefficients",coeffs)
         plotStandard(exp,fileDict,flags)
+        if flags['Text']:
+            printResultsText(species, coeffs, perr, fileDict, flags)
     else:# If more than two, check if we are kinetic or replicate
         if flags['Kinetic']: # Do kinetic function
             kdf = kineticAnalysis(flags)
@@ -239,49 +245,43 @@ def plotReplicates(exp, fileDict, flags):
         print("Finished, plotting image")
         plt.show()
 
-def plotKinetic(kdf):
-
-    pass
-
 def printResultsExcel(df, fileDict):
     if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
     writer = pd.ExcelWriter(fileDict['outDir']+'/'+fileDict['name']+'_output.xlsx')
     df.to_excel(writer, index=False)
     writer.save()
-
-def printResultsText(fileDict,flags):
+#%%
+def printResultsText(species, coeffs, perr, fileDict, flags):
     if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
     tbody = ["Curve fitting report",
              "Using scipy.optimize.curve_fit (non-linear least squares regression)",
-             "Version 1.1.0 \t Richard Hickey \t Ohio State University",
+             "Version 1.2.0 \t Richard Hickey \t Ohio State University",
              ""]
-    tbody += ["Sample: \t"+fileDict['name'],
-              "Filename: \t"+fileDict['name.ext'],
-              "Reference: \t"+reffile,
-              "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
-              "Operator: \t"+flags['Operator']]
+    #tbody += ["Sample: \t"+fileDict['name'],
+    #          "Filename: \t"+fileDict['name.ext'],
+    #          "Reference: \t"+fileDict['Reference'],
+    #          "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
+    #          "Operator: \t"+flags['Operator']]
     if flags['Normalize']:
         tbody += ["Normalized to lowest value = 0"]
     tbody += [""]
     tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
-    for sp,conc,sd in zip(species,concs,perr):
-        cpercent = 100*conc/sum(concs)
-        if conc< 0.000001:
+    for sp,coef,sd in zip(species,coeffs,perr):
+        cpercent = 100*coef/sum(coeffs)
+        if coef< 0.000001:
             sdpercent = 0
         else:
-            sdpercent = 100 * sd / conc
-        tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
-        tbody += [sp+"\t{:.6f} ({:.2f}%)".format(conc,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
-    tbody += ["",
-              "Fit data:",
-              "Sum of squares (residual) = "+str(ss_r),
-              "Sum of squares (total) = "+str(ss_t),
-              "R-squared = "+str(r2)]
-    tbody += ["",
-              "* Standard error being defined as the diagonal of the square root of the coefficient covariance matrix. The covariance matrix appears below.",
-              str(pcov)]
+            sdpercent = 100 * sd / coef
+        #tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
+        tbody += [sp+"\t{:.6f} ({:.2f}%)".format(coef,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
+    #tbody += ["",
+    #          "Fit data:",
+    #          "Sum of squares (residual) = "+str(ss_r),
+    #          "Sum of squares (total) = "+str(ss_t),
+    #          "R-squared = "+str(r2)]
+    tbody += ["\nStandard error being defined as the diagonal of the square root of the coefficient covariance matrix."]
     # Print output report to console
     print('\n'.join(tbody))
     # Print output report to .txt file
@@ -289,143 +289,3 @@ def printResultsText(fileDict,flags):
     f = open(fileDict['outDir']+'/'+fileDict['name']+'_output.txt','w')
     f.write('\n'.join(tbody))
     f.close()
-
-#%%
-def deconv(datafile, # List of file path strings
-           reffile='refspec.dat', # Reference spectra
-           norm=False,  # Normalize minimum value to 0
-           savePng=True, # Output image
-           except_species = [], # Omit this list of species
-           nm_min=450, # Minimum wavelength
-           nm_max=700, # Maximum wavelength
-           opID=''): # Operator ID
-    """
-    Performs spectral deconvolution of an experimental hemoglobin solution compared to standard references (reffile). datafile is a LIST of path strings. norm subtracts the lowest value (usually at 700 nm) from all entries.
-    """
-    # Turn a single filename into a 1-item list to be iterated
-    if isinstance(datafile, str):
-        datafile = [datafile]
-    # Read reference spectra
-    ref = pd.read_csv(reffile,'\t')
-    # Remove unwanted reference species
-    ref = ref.drop(except_species, axis=1)
-
-    species = list(ref.drop('nm',axis=1))
-    n = len(species) # number of species
-    k_init = np.ones(n) # Initial guesses for coefficients (default 1)
-
-    myBounds = (0,np.inf) # Limits for coefficients (non-neg)
-
-    # Take only evens between wavelength limits
-    ref = ref[ref['nm'] >= nm_min]
-    ref = ref[ref['nm'] <= nm_max]
-    ref = ref[ref['nm'] % 2 == 0]
-
-
-
-    # Do the following for each file we are given:
-    for thisfile in datafile:
-        # Figure out where in the world we are working
-        myPath = os.path.basename(thisfile) # yields 'filename.ext'
-        myTitle, myExt = os.path.splitext(myPath) # yields 'filename', '.ext'
-        myDir = os.path.dirname(thisfile) # yields 'data/somebatch/'
-        # Decide where output will go
-        out_dir = myDir + '/' + 'output'
-
-        # Read the file
-        if myExt == ".dat" or myExt == ".txt" or myExt==".csv":
-            exp = pd.read_csv(thisfile,'\t')
-        elif myExt == ".xls" or myExt == ".xlsx":
-            exp = pd.read_excel(thisfile)
-        else:
-            raise Exception("Error: Unknown input file type (must be .dat, .txt, .csv, .xls, .xlsx)")
-
-        print("Running "+thisfile) # Announce file in case we crash during it
-
-        # Take only evens between wavelength limits
-        exp = cleanData(exp)
-
-        # If desired, normalize to 0 (usually at 700)
-        if norm:
-            exp['A'] = exp['A']-np.min(exp['A'])
-
-        # Make call to curve_fit
-        popt, pcov = curve_fit(func, ref.drop('nm',axis=1).T, exp['A'], p0=k_init, bounds=myBounds)
-
-        # Extract error and coefficients from results
-        perr = np.sqrt(np.diag(pcov)) # standard errors
-        concs = popt
-
-        # Create a line of best fit using our results
-        exp['fit'] = func(ref.drop('nm',axis=1).T, *popt)
-        ss_r = np.sum((exp['A'] - exp['fit'])**2)
-        ss_t = np.sum((exp['A'] - np.mean(exp['A']))**2)
-        r2 = 1-(ss_r/ss_t)
-
-        # Print fit data and coefficients
-
-        tbox = r"$R^2$ fit: {:.5f}".format(r2)
-        #%% Output text report
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-        tbody = ["Curve fitting report",
-                 "Using scipy.optimize.curve_fit (non-linear least squares regression)",
-                 "Version 1.1.0 \t Richard Hickey \t Ohio State University",
-                 ""]
-        tbody += ["Sample: \t"+myTitle,
-                  "Filename: \t"+thisfile,
-                  "Reference: \t"+reffile,
-                  "Wavelengths: \t"+str(nm_min)+"-"+str(nm_max),
-                  "Operator: \t"+opID]
-        if norm:
-            tbody += ["Normalized to lowest value = 0"]
-        tbody += [""]
-        tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
-        for sp,conc,sd in zip(species,concs,perr):
-            cpercent = 100*conc/sum(concs)
-            if conc< 0.000001:
-                sdpercent = 0
-            else:
-                sdpercent = 100 * sd / conc
-            tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
-            tbody += [sp+"\t{:.6f} ({:.2f}%)".format(conc,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
-        tbody += ["",
-                  "Fit data:",
-                  "Sum of squares (residual) = "+str(ss_r),
-                  "Sum of squares (total) = "+str(ss_t),
-                  "R-squared = "+str(r2)]
-        tbody += ["",
-                  "* Standard error being defined as the diagonal of the square root of the coefficient covariance matrix. The covariance matrix appears below.",
-                  str(pcov)]
-        # Print output report to console
-        print('\n'.join(tbody))
-        # Print output report to .txt file
-        #f = open(out_dir+'/'+myTitle+'_output.txt','w')
-        f = open(out_dir+'/'+myTitle+'_output.txt','w')
-        f.write('\n'.join(tbody))
-        f.close()
-
-        #%% Plot results
-
-        fig, ax = plt.subplots(1,1)
-        ax.plot(exp['nm'], exp['A'], 'b.-', label='data')
-        ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
-
-        ax.set_title(myTitle)
-        ax.set_xlabel('Wavelength (nm)')
-        ax.set_ylabel('Absorbance')
-        ax.legend(loc=1)
-        anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
-        anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
-        ax.add_artist(anchored_text)
-        #%% Save figure
-        if savePng:
-            plt.savefig(out_dir+'/'+myTitle+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
-
-        #%% Output spectra file
-        #exp.columns = ['Wavelength (nm)','Original wave','Best fit'] # (This messes up column names for plotting)
-        writer = pd.ExcelWriter(out_dir+'/'+myTitle+'_output.xlsx')
-        exp.to_excel(writer, index=False)
-        writer.save()
-        #exp.to_csv(out_dir+'/'+myTitle+'_output.dat',sep='\t',index=False)
-        plt.show()

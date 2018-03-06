@@ -131,10 +131,10 @@ normalize = T.BooleanVar(root,value=False)
 T.Label(root, text="Normalize data to 0").grid(row=6, column=3, sticky='w')
 radioNormYes = T.Radiobutton(root,text="Yes",variable=normalize, value=True)
 radioNormYes.grid(row=6, column=4, sticky='w')
-radioNormYes.configure(state="disabled")
+#radioNormYes.configure(state="disabled")
 radioNormNo = T.Radiobutton(root,text="No",variable=normalize, value=False)
 radioNormNo.grid(row=6, column=5, columnspan=2, sticky='w')
-radioNormNo.configure(state="disabled")
+#radioNormNo.configure(state="disabled")
 
 #%% Verbose output
 verbose = T.BooleanVar(root,value=False)
