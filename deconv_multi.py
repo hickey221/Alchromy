@@ -161,6 +161,8 @@ def multiColDeconv(refPath='refspec.dat',
             if flags['Verbose']:
                 print("Finished with coefficients",coeffs)
             plotReplicates(exp,fileDict,flags)
+            if flags['Text']:
+                printResultsText(species, coeffs, perr, fileDict, flags)
 
     # Report status of completed run
     # TODO: Add more options for error codes
