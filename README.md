@@ -16,15 +16,20 @@ Alchromy requires Python 3 and the following packages:
  * matplpotlib
 
 ## Usage
-Users can access the script through the command line (using *deconv.py*) or the GUI (*main_gui.py*). In either case, the following parameters should be specified:
+Users can access the script through the command line (using *deconv_multi.py*) or the GUI (*main_gui.py*). In either case, the following parameters should be specified:
 * **Data file**: A file path, or list of file paths (directory if using GUI), in which the experimental waveforms are located.
 * **Reference file**: A file path to a sheet of waveforms to be used as pure reference spectra for deconvolution. Defaults to *refspec.dat*.
 * **Ignored species**: Waveforms from the reference that should not be used in curve fitting.
 * **nm_min** and **nm_max**: Minimum and maximum wavelengths to consider for the curve fitting. Both experimental and reference spectra must have values continuously in this region.
-* **Kinetic/Replicate**: If more than one column of data is present, specify whether it should be treated as kinetic data collected over time, or replicates of the same sample (where the spectra will be averaged).
+* **Kinetic** *vs* **Replicate**: If more than one column of data is present, specify whether it should be treated as kinetic data collected over time, or replicates of the same sample (where the spectra will be averaged).
+* **Normalize**: Adjusts the input waves such that the lowest value becomes 0. Potentially helpful for solutions with known baseline offset from light scattering, use with caution otherwise.
+* **Operator ID** (optional): Name of person performing analysis, which will be saved in the text report file.
+* **Verbose Output**: If enabled, will print frequent status updates to your Python console.
+* **Graph, Report,** and **Spectra**: Boolean values that determine whether .png, .txt, and .xlsx files (respectively) are produced.
+
 
 #### File input format
-The file input methods of Alchromy are being expanded, but are currently limited to a narrow specification. Reference files should contain multiple columns beginning with wavelength (named *nm*). Subsequent columns should be named for the species they contain. Experimental data files should contain two columns, named *nm* and *A* for the wavelength and absorbance, respectively. All files should be in tab delimited format with the extension *.dat*.
+The file input methods of Alchromy are being expanded, but are currently limited to a narrow specification. Reference files should contain multiple columns beginning with wavelength (named *nm*). Subsequent columns should be named for the species they contain. Experimental data files should contain two columns, named *nm* and *A* for the wavelength and absorbance, respectively. Files may be in tab delimited format with the extension *.dat* or a single Excel sheet in a *.xlsx* file.
 
 ## Output
 At this time, Alchromy produces three types of output files:
@@ -35,7 +40,7 @@ At this time, Alchromy produces three types of output files:
 ## To-do list
 There are many changes in the works! Below is a list of features already in development.
 * Better error handling.
-* Improved status reporting in GUI .
+* Improved status reporting in GUI.
 * Input of multiple waves from a single file (xslx or csv format).
 * Batched deconvolution from GUI, with updating progress bar.
 * More informative output file names.
