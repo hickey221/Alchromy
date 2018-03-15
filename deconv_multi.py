@@ -100,6 +100,11 @@ def multiColDeconv(refPath='refspec.dat',
         ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
         ax.set_xlabel('Time')
         ax.set_ylabel('Fractional composition')
+        if flags['Image']:
+            if not os.path.exists(fileDict['outDir']):
+                os.makedirs(fileDict['outDir'])
+            plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', 
+                        bbox_inches='tight',facecolor='white', dpi=300)
         plt.show()
         return kdf
 
@@ -117,7 +122,7 @@ def multiColDeconv(refPath='refspec.dat',
     exp, fileDict = readFile(filePath)
     exp = cleanData(exp,flags['Cutoff'])
     timePoints = list(exp.drop('nm',axis=1))
-    fileDict['Reference'] = ref
+    fileDict['Reference'] = refPath
     
     # Check number of data cols
     nCols = len(list(exp.drop('nm',axis=1)))
@@ -210,7 +215,8 @@ def plotStandard(exp, fileDict, flags):
     if flags['Image']:
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
-        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
+        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', 
+                    bbox_inches='tight',facecolor='white', dpi=300)
     if flags['Verbose']:
         print("Finished, plotting image")
         plt.show()
@@ -261,11 +267,11 @@ def printResultsText(species, coeffs, perr, fileDict, flags):
              "Using scipy.optimize.curve_fit (non-linear least squares regression)",
              "Version 1.2.0 \t Richard Hickey \t Ohio State University",
              ""]
-    #tbody += ["Sample: \t"+fileDict['name'],
-    #          "Filename: \t"+fileDict['name.ext'],
-    #          "Reference: \t"+fileDict['Reference'],
-    #          "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
-    #          "Operator: \t"+flags['Operator']]
+    tbody += ["Sample: \t"+fileDict['name'],
+              "Filename: \t"+fileDict['name.ext'],
+              "Reference: \t"+fileDict['Reference'],
+              "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
+              "Operator: \t"+flags['Operator']]
     if flags['Normalize']:
         tbody += ["Normalized to lowest value = 0"]
     tbody += [""]
