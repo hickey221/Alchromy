@@ -13,7 +13,6 @@ TODO: Icon
 TODO: Error handling
 TODO: Add deconvolution description to the readme
 TODO: Capture output from deconv and send to GUI
-TODO: Input multiple waves from one file
 """
 
 # Requires Python 3.x
