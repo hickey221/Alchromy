@@ -25,7 +25,7 @@ import os
 import deconv_multi
 import time
 
-versionNumber = "1.2.0"
+versionNumber = "1.2.1"
 #%% "About" dialog box
 def aboutBox():
     messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
@@ -246,11 +246,11 @@ b_unuseCol = T.Button(colBrowser,text=">",command=unuseCol).grid(row=2,column=1,
 colBrowser.grid(row=7,column=0,columnspan=3)
 
 #%% Operator ID
-labelOpID = T.Label(root,text="Operator ID")
-labelOpID.grid(row=0,column=6)
-opID = T.StringVar(root, value="")
-enterOpID = T.Entry(root, textvariable=opID)
-enterOpID.grid(row=1,column=6)
+labelNote = T.Label(root,text="File note (appended to filename)")
+labelNote.grid(row=0,column=6)
+note = T.StringVar(root, value="")
+enterNote = T.Entry(root, textvariable=note)
+enterNote.grid(row=1,column=6)
 
 #%% Go button!
 def launchDeconv():
@@ -294,7 +294,7 @@ def launchDeconv():
                'Text':outTxt.get(),
                'Excel':outSpectra.get(),
                'Kinetic':kinetic.get(),
-               'Operator':opID.get(),
+               'Note':note.get(),
                'Normalize':normalize.get(),
                'Verbose':verbose.get(),
                'Cutoff':(nmMinInt,nmMaxInt)}

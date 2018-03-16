@@ -62,6 +62,15 @@ def cleanData(df, cutoff):
 
     return df
 
+def genFileName(fileDict,fileExt,flags):
+    fileOut = fileDict['outDir']+'/'+fileDict['name']
+    if flags['Kinetic']:
+        fileOut += '_kinetic'
+    if flags['Note']:
+        fileOut += '_'+flags['Note']
+    fileOut += '.'+fileExt
+    return fileOut
+
 def multiColDeconv(refPath='refspec.dat',
                    filePath='',
                    ignored=[],
@@ -69,7 +78,7 @@ def multiColDeconv(refPath='refspec.dat',
                           'Text':True,
                           'Excel':True,
                           'Kinetic':False,
-                          'Operator':'',
+                          'Note':'',
                           'Normalize':False,
                           'Verbose':False,
                           'Cutoff':(450,700)}):
@@ -78,35 +87,7 @@ def multiColDeconv(refPath='refspec.dat',
     1) Replicates of the same data points
     2) Kinetic data over time
     """
-    def kineticAnalysis(flags):
-        if flags['Verbose']:
-            print("Running kinetic analysis")
-        kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
-        kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
-        kdf = kdf.set_index('Time') # do we need this?
-        # make error columns
-        species_err = [sp + '_err' for sp in species]
-        species_perc = [sp + ' (%)' for sp in species] # % of total
-        kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
-        for timePoint in timePoints:
-            # Make call to curve_fit
-            coeffs, perr = doFitting(ref.drop('nm',axis=1), exp[timePoint])
-            # Extract error and coefficients from results
-            for sp,sp_e,coeff,sd,sp_perc in zip(species,species_err,coeffs,perr, species_perc):
-                kdf.loc[timePoint,sp] = coeff # Actual coefficient
-                kdf.loc[timePoint,sp_e] = sd # Standard error
-                kdf.loc[timePoint,sp_perc] = coeff/sum(coeffs) # Percent of total composition
-        #kdf.sort_index(inplace=True) # Sort by time index
-        ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Fractional composition')
-        if flags['Image']:
-            if not os.path.exists(fileDict['outDir']):
-                os.makedirs(fileDict['outDir'])
-            plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', 
-                        bbox_inches='tight',facecolor='white', dpi=300)
-        plt.show()
-        return kdf
+
 
     if flags['Verbose']:
         print("working on",filePath)
@@ -132,9 +113,74 @@ def multiColDeconv(refPath='refspec.dat',
         print("Found",nCols,"columns of data")
         print("Have data column headers",timePoints)
 
+    #%% Nested function for kinetic analysis
+    def kineticAnalysis(fileDict,flags):
+        if flags['Verbose']:
+            print("Running kinetic analysis")
+        kdf = pd.DataFrame(timePoints, columns=['Time']) # kinetic data frame
+        kdf = pd.concat([kdf,pd.DataFrame(columns=species)])
+        kdf = kdf.set_index('Time') # do we need this?
+        # make error columns
+        species_err = [sp + '_err' for sp in species]
+        species_perc = [sp + ' (%)' for sp in species] # % of total
+        kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
+        for timePoint in timePoints:
+            # Make call to curve_fit
+            coeffs, perr = doFitting(ref.drop('nm',axis=1), exp[timePoint])
+            # Extract error and coefficients from results
+            for sp,sp_e,coeff,sd,sp_perc in zip(species,species_err,coeffs,perr, species_perc):
+                kdf.loc[timePoint,sp] = coeff # Actual coefficient
+                kdf.loc[timePoint,sp_e] = sd # Standard error
+                kdf.loc[timePoint,sp_perc] = coeff/sum(coeffs) # Percent of total composition
+        #kdf.sort_index(inplace=True) # Sort by time index
+        ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Fractional composition')
+        if flags['Image']:
+            if not os.path.exists(fileDict['outDir']):
+                os.makedirs(fileDict['outDir'])
+            plt.savefig(genFileName(fileDict,'png',flags), 
+                        bbox_inches='tight',facecolor='white', dpi=300)
+        plt.show()
+        if flags['Text']:
+            #TODO: More specific text output for kinetic data
+            c_init = kdf[species].iloc[0]
+            c_init_perc = 100 * c_init / np.sum(c_init)
+            c_final = kdf[species].iloc[-1]
+            c_final_perc = 100 * c_final / np.sum(c_final)
+            c_init_final_perc = pd.concat([c_init_perc,c_final_perc],axis=1)
+            
+            if not os.path.exists(fileDict['outDir']):
+                os.makedirs(fileDict['outDir'])
+            tbody = ["Kinetic data report",
+                     "Using scipy.optimize.curve_fit (non-linear least squares regression)",
+                     "Version 1.2.1 \t Richard Hickey \t Ohio State University",
+                     ""]
+            tbody += ["Filename: \t"+fileDict['name.ext'],
+                      "Reference: \t"+fileDict['Reference'],
+                      "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
+                      "File note: \t"+flags['Note']]
+            if flags['Normalize']:
+                tbody += ["Normalized to lowest value = 0"]
+            tbody += [""]
+            tbody += ["Start and ending composition (percent)"]
+            tbody += [c_init_final_perc.to_string(header=['initial','final'])]
+            tbody += ["Component maximum and mimimums:"]
+            
+            if flags['Verbose']:
+                # Print output report to console
+                print('\n'.join(tbody))
+            # Print output report to .txt file
+            f = open(genFileName(fileDict,'txt',flags),'w')
+            f.write('\n'.join(tbody))
+            f.close()         
+            
+        return kdf
+
     if nCols < 1: # If none, we have a problem
         raise Exception("Error: Can't find any data")
-    elif nCols == 1: # If 1, run simple deconvolution
+    elif nCols == 1: 
+        #%%%%%% CASE 1: SIMPLE DECONVOLUTION %%%%%%
         # If there's only 1 data column, name it 'data'
         exp.rename(columns={exp.columns[1]: 'data'}, inplace=True)
         if flags['Normalize']:
@@ -149,12 +195,18 @@ def multiColDeconv(refPath='refspec.dat',
         plotStandard(exp,fileDict,flags)
         if flags['Text']:
             printResultsText(species, coeffs, perr, fileDict, flags)
-    else:# If more than two, check if we are kinetic or replicate
+        if flags['Excel']:
+            printResultsExcel(exp,fileDict,flags)
+    else:
+        #%%%%%% CASE 2: MULTIPLE COLUMNS, KINETIC DATA %%%%%%
         if flags['Kinetic']: # Do kinetic function
-            kdf = kineticAnalysis(flags)
+            kdf = kineticAnalysis(fileDict,flags)
+            if flags['Excel']:
+                printResultsExcel(kdf,fileDict, flags,idx=True)
             print("Done")
-            #return kdf
-        else: # Assume replicates
+
+        else: 
+            #%%%%%% CASE 3: MULTIPLE COLUMNS, REPLICATE DATA %%%%%%
             if flags['Verbose']:
                 print("Running average of replicates deconv")
             # Average all non-wavelength spectra into one
@@ -168,7 +220,9 @@ def multiColDeconv(refPath='refspec.dat',
             plotReplicates(exp,fileDict,flags)
             if flags['Text']:
                 printResultsText(species, coeffs, perr, fileDict, flags)
-
+            if flags['Excel']:
+                printResultsExcel(exp,fileDict,flags)
+    #%% End of cases cases
     # Report status of completed run
     # TODO: Add more options for error codes
     statusReport = {'Code': 0, 'Message': 'Finished without incident'} # No problems
@@ -215,11 +269,13 @@ def plotStandard(exp, fileDict, flags):
     if flags['Image']:
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
-        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', 
+        plt.savefig(genFileName(fileDict,'png',flags), 
                     bbox_inches='tight',facecolor='white', dpi=300)
     if flags['Verbose']:
-        print("Finished, plotting image")
+        print("Finished fitting, plotting image")
         plt.show()
+    if flags['Text']:
+        pass
 
 def plotReplicates(exp, fileDict, flags):
     fig, ax = plt.subplots(1,1)
@@ -248,16 +304,18 @@ def plotReplicates(exp, fileDict, flags):
     if flags['Image']:
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
-        plt.savefig(fileDict['outDir']+'/'+fileDict['name']+'_output.png', bbox_inches='tight',facecolor='white', dpi=300)
+        plt.savefig(genFileName(fileDict,'png',flags), bbox_inches='tight',facecolor='white', dpi=300)
     if flags['Verbose']:
-        print("Finished, plotting image")
+        print("Finished fitting, plotting image")
         plt.show()
 
-def printResultsExcel(df, fileDict):
+
+
+def printResultsExcel(df, fileDict,flags, idx=False):
     if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
-    writer = pd.ExcelWriter(fileDict['outDir']+'/'+fileDict['name']+'_output.xlsx')
-    df.to_excel(writer, index=False)
+    writer = pd.ExcelWriter(genFileName(fileDict,'xlsx',flags))
+    df.to_excel(writer, index=idx)
     writer.save()
 #%%
 def printResultsText(species, coeffs, perr, fileDict, flags):
@@ -265,13 +323,13 @@ def printResultsText(species, coeffs, perr, fileDict, flags):
             os.makedirs(fileDict['outDir'])
     tbody = ["Curve fitting report",
              "Using scipy.optimize.curve_fit (non-linear least squares regression)",
-             "Version 1.2.0 \t Richard Hickey \t Ohio State University",
+             "Version 1.2.1 \t Richard Hickey \t Ohio State University",
              ""]
     tbody += ["Sample: \t"+fileDict['name'],
               "Filename: \t"+fileDict['name.ext'],
               "Reference: \t"+fileDict['Reference'],
               "Wavelengths: \t"+str(flags['Cutoff'][0])+"-"+str(flags['Cutoff'][1]),
-              "Operator: \t"+flags['Operator']]
+              "File note: \t"+flags['Note']]
     if flags['Normalize']:
         tbody += ["Normalized to lowest value = 0"]
     tbody += [""]
@@ -284,16 +342,18 @@ def printResultsText(species, coeffs, perr, fileDict, flags):
             sdpercent = 100 * sd / coef
         #tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
         tbody += [sp+"\t{:.6f} ({:.2f}%)".format(coef,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
+
     #tbody += ["",
     #          "Fit data:",
     #          "Sum of squares (residual) = "+str(ss_r),
     #          "Sum of squares (total) = "+str(ss_t),
     #          "R-squared = "+str(r2)]
     tbody += ["\nStandard error being defined as the diagonal of the square root of the coefficient covariance matrix."]
-    # Print output report to console
-    print('\n'.join(tbody))
+    if flags['Verbose']:
+        # Print output report to console
+        print('\n'.join(tbody))
     # Print output report to .txt file
     #f = open(out_dir+'/'+myTitle+'_output.txt','w')
-    f = open(fileDict['outDir']+'/'+fileDict['name']+'_output.txt','w')
+    f = open(genFileName(fileDict,'txt',flags),'w')
     f.write('\n'.join(tbody))
     f.close()
