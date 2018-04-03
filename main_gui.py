@@ -95,7 +95,9 @@ def browseForDir():
     if newPath:
         dirPath.set(newPath)
         statusUpdate("Using dir /"+os.path.split(dirPath.get())[1]+"/")
-        allFiles = glob.glob(dirPath.get()+"/*.dat")
+        allFiles = glob.glob(dirPath.get()+"/*.*")
+        approvedFiles = ['.dat','.txt','.csv','.xls','.xlsx']
+        allFiles = [f for f in allFiles if os.path.splitext(os.path.basename(f))[1] in approvedFiles ]
 
         statusBox.insert(T.END,"Found "+str(len(allFiles))+" files.\n")
     enterDir.update()
