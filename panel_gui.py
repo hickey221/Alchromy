@@ -24,7 +24,7 @@ import os
 import deconv_multi
 import time
 
-versionNumber = "1.2.1"
+versionNumber = "1.3.0"
 #%% "About" dialog box
 def aboutBox():
     messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
@@ -37,8 +37,9 @@ root.title('Alchromy - Spectral Deconvolution')
 n = ttk.Notebook(root)
 f1 = ttk.Frame(n)   # first page, which would get widgets gridded into it
 f2 = ttk.Frame(n)   # second page
-n.add(f1, text='One')
-n.add(f2, text='Two')
+n.add(f1, text='Control panel')
+n.add(f2, text='Output')
+n.grid()
 
 # make the top right close button close the main window
 root.protocol("WM_DELETE_WINDOW", root.destroy)
@@ -109,75 +110,75 @@ def browseForDir():
     enterDir.update()
     enterDir.xview_moveto(1)
 
-T.Label(root, text="Input file(s)").grid(row=0, column=0,columnspan=3)
+T.Label(f1, text="Input file(s)").grid(row=0, column=0,columnspan=3)
 
-radioFile = T.Radiobutton(root,text="Select File",variable=fileVsDir, value=1,command=useFile)
+radioFile = T.Radiobutton(f1,text="Select File",variable=fileVsDir, value=1,command=useFile)
 radioFile.grid(row=1, column=0, sticky='w')
-enterFile = T.Entry(root, textvariable=filePath)
+enterFile = T.Entry(f1, textvariable=filePath)
 enterFile.grid(row=1, column=1, sticky="w")
-buttonBrowseFile = T.Button(root,text="Browse",command=browseForFile)
+buttonBrowseFile = T.Button(f1,text="Browse",command=browseForFile)
 buttonBrowseFile.grid(row=1,column=2)
 
-radioDir = T.Radiobutton(root,text="Select Directory",variable=fileVsDir, value=2,command=useDir)
+radioDir = T.Radiobutton(f1,text="Select Directory",variable=fileVsDir, value=2,command=useDir)
 radioDir.grid(row=2, column=0, sticky='w')
-enterDir = T.Entry(root, textvariable=dirPath)
+enterDir = T.Entry(f1, textvariable=dirPath)
 enterDir.grid(row=2, column=1, sticky="w")
-buttonBrowseDir = T.Button(root,text="Browse",command=browseForDir)
+buttonBrowseDir = T.Button(f1,text="Browse",command=browseForDir)
 buttonBrowseDir.grid(row=2,column=2)
 
 #%% Kinetic vs replicate
-kinetic = T.BooleanVar(root,value=False)
-T.Label(root, text="Treat multiple columns as").grid(row=5, column=3, sticky='w')
-radioReplicate = T.Radiobutton(root,text="Replicate",variable=kinetic, value=False)
+kinetic = T.BooleanVar(f1,value=False)
+T.Label(f1, text="Treat multiple columns as").grid(row=5, column=3, sticky='w')
+radioReplicate = T.Radiobutton(f1,text="Replicate",variable=kinetic, value=False)
 radioReplicate.grid(row=5, column=4, sticky='w')
-radioKinetic = T.Radiobutton(root,text="Kinetic",variable=kinetic, value=True)
+radioKinetic = T.Radiobutton(f1,text="Kinetic",variable=kinetic, value=True)
 radioKinetic.grid(row=5, column=5, columnspan=2, sticky='w')
 
 #%% Normalize
-normalize = T.BooleanVar(root,value=False)
-T.Label(root, text="Normalize data to 0").grid(row=6, column=3, sticky='w')
-radioNormYes = T.Radiobutton(root,text="Yes",variable=normalize, value=True)
+normalize = T.BooleanVar(f1,value=False)
+T.Label(f1, text="Normalize data to 0").grid(row=6, column=3, sticky='w')
+radioNormYes = T.Radiobutton(f1,text="Yes",variable=normalize, value=True)
 radioNormYes.grid(row=6, column=4, sticky='w')
 #radioNormYes.configure(state="disabled")
-radioNormNo = T.Radiobutton(root,text="No",variable=normalize, value=False)
+radioNormNo = T.Radiobutton(f1,text="No",variable=normalize, value=False)
 radioNormNo.grid(row=6, column=5, columnspan=2, sticky='w')
 #radioNormNo.configure(state="disabled")
 
 #%% Verbose output
-verbose = T.BooleanVar(root,value=False)
-T.Label(root, text="Verbose debug output").grid(row=7, column=3, sticky='nw')
-radioVerboseYes = T.Radiobutton(root,text="Yes",variable=verbose, value=True)
+verbose = T.BooleanVar(f1,value=False)
+T.Label(f1, text="Verbose debug output").grid(row=7, column=3, sticky='nw')
+radioVerboseYes = T.Radiobutton(f1,text="Yes",variable=verbose, value=True)
 radioVerboseYes.grid(row=7, column=4, sticky='nw')
-radioVerboseNo = T.Radiobutton(root,text="No",variable=verbose, value=False)
+radioVerboseNo = T.Radiobutton(f1,text="No",variable=verbose, value=False)
 radioVerboseNo.grid(row=7, column=5, columnspan=2, sticky='nw')
 
 #%% Output options
-outGraph = T.BooleanVar(root,value=True)
-outTxt = T.BooleanVar(root,value=True)
-outSpectra = T.BooleanVar(root,value=True)
+outGraph = T.BooleanVar(f1,value=True)
+outTxt = T.BooleanVar(f1,value=True)
+outSpectra = T.BooleanVar(f1,value=True)
 
-T.Label(root, text="Output options").grid(row=0, column=3,columnspan=3)
+T.Label(f1, text="Output options").grid(row=0, column=3,columnspan=3)
 
-T.Label(root, text="Graph (.png)").grid(row=1, column=3, sticky='w')
-r_graph_y = T.Radiobutton(root,text="Yes",variable=outGraph,value=True).grid(row=1, column=4, sticky='w')
-r_graph_n = T.Radiobutton(root,text="No",variable=outGraph,value=False).grid(row=1, column=5, sticky='w')
+T.Label(f1, text="Graph (.png)").grid(row=1, column=3, sticky='w')
+r_graph_y = T.Radiobutton(f1,text="Yes",variable=outGraph,value=True).grid(row=1, column=4, sticky='w')
+r_graph_n = T.Radiobutton(f1,text="No",variable=outGraph,value=False).grid(row=1, column=5, sticky='w')
 
-T.Label(root, text="Report (.txt)").grid(row=2, column=3, sticky='w')
-r_txt_y = T.Radiobutton(root,text="Yes",variable=outTxt,value=True).grid(row=2, column=4, sticky='w')
-r_txt_n = T.Radiobutton(root,text="No",variable=outTxt,value=False).grid(row=2, column=5, sticky='w')
+T.Label(f1, text="Report (.txt)").grid(row=2, column=3, sticky='w')
+r_txt_y = T.Radiobutton(f1,text="Yes",variable=outTxt,value=True).grid(row=2, column=4, sticky='w')
+r_txt_n = T.Radiobutton(f1,text="No",variable=outTxt,value=False).grid(row=2, column=5, sticky='w')
 
-T.Label(root, text="Spectra (.xslx)").grid(row=3, column=3, sticky='w')
-r_spectra_y = T.Radiobutton(root,text="Yes",variable=outSpectra,value=True)
+T.Label(f1, text="Spectra (.xslx)").grid(row=3, column=3, sticky='w')
+r_spectra_y = T.Radiobutton(f1,text="Yes",variable=outSpectra,value=True)
 r_spectra_y.grid(row=3, column=4, sticky='w')
-r_spectra_n = T.Radiobutton(root,text="No",variable=outSpectra,value=False)
+r_spectra_n = T.Radiobutton(f1,text="No",variable=outSpectra,value=False)
 r_spectra_n.grid(row=3, column=5, sticky='w')
 
 #%% Wavelength select
 nmMin = T.StringVar(value="450")
 nmMax = T.StringVar(value="700")
-T.Label(root, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
-e_nmMin = T.Entry(root, textvariable=nmMin, width=8).grid(row=4, column=4, sticky='w')
-e_nmMax = T.Entry(root, textvariable=nmMax, width=8).grid(row=4, column=5, sticky='w')
+T.Label(f1, text="Wavelength min-max").grid(row=4, column=3, sticky='w')
+e_nmMin = T.Entry(f1, textvariable=nmMin, width=8).grid(row=4, column=4, sticky='w')
+e_nmMax = T.Entry(f1, textvariable=nmMax, width=8).grid(row=4, column=5, sticky='w')
 
 #%% Specify reference spectra
 
@@ -216,15 +217,15 @@ def browseForRef():
     e_ref.update()
     e_ref.xview_moveto(1)
 
-refDefault = T.BooleanVar(root, value=True)
-T.Label(root, text="Reference spectra").grid(row=4, column=0, columnspan=2)
-refPath = T.StringVar(root, value="refspec.dat")
-r_ref_default = T.Radiobutton(root,text="Default ",variable=refDefault,value=True,command=useDefaultRef).grid(row=5, column=0, sticky='w')
-T.Label(root, text="refspec.dat").grid(row=5, column=1, sticky="w")
-r_ref_custom = T.Radiobutton(root,text="Custom ",variable=refDefault,value=False,command=useCustomRef).grid(row=6, column=0, sticky='w')
-e_ref = T.Entry(root, textvariable=refPath)
+refDefault = T.BooleanVar(f1, value=True)
+T.Label(f1, text="Reference spectra").grid(row=4, column=0, columnspan=2)
+refPath = T.StringVar(f1, value="refspec.dat")
+r_ref_default = T.Radiobutton(f1,text="Default ",variable=refDefault,value=True,command=useDefaultRef).grid(row=5, column=0, sticky='w')
+T.Label(f1, text="refspec.dat").grid(row=5, column=1, sticky="w")
+r_ref_custom = T.Radiobutton(f1,text="Custom ",variable=refDefault,value=False,command=useCustomRef).grid(row=6, column=0, sticky='w')
+e_ref = T.Entry(f1, textvariable=refPath)
 e_ref.grid(row=6, column=1, sticky="w")
-b_ref = T.Button(root,text="Browse", command=browseForRef)
+b_ref = T.Button(f1,text="Browse", command=browseForRef)
 b_ref.grid(row=6,column=2)
 
 #%% Choose columns to use
@@ -238,7 +239,7 @@ def unuseCol():
     l_cols_unused.insert(0, mover)
     l_cols_used.delete(T.ACTIVE)
 
-colBrowser = T.Frame(root)
+colBrowser = T.Frame(f1)
 T.Label(colBrowser, text="Used").grid(row=0, column=0)
 T.Label(colBrowser, text="Ignored").grid(row=0, column=2)
 l_cols_used = T.Listbox(colBrowser)
@@ -253,10 +254,10 @@ b_unuseCol = T.Button(colBrowser,text=">",command=unuseCol).grid(row=2,column=1,
 colBrowser.grid(row=7,column=0,columnspan=3)
 
 #%% Operator ID
-labelNote = T.Label(root,text="File note (appended to filename)")
+labelNote = T.Label(f1,text="File note (appended to filename)")
 labelNote.grid(row=0,column=6)
-note = T.StringVar(root, value="")
-enterNote = T.Entry(root, textvariable=note)
+note = T.StringVar(f1, value="")
+enterNote = T.Entry(f1, textvariable=note)
 enterNote.grid(row=1,column=6)
 
 #%% Go button!
@@ -327,11 +328,11 @@ def launchDeconv():
     statusUpdate("Done!")
     pBar['value'] = 100
 
-bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv)
+bigGreenButton = T.Button(f1, text="GO", bg="lightgreen", command=launchDeconv)
 bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
 
 #%% Progres bar
-pBar = ttk.Progressbar(root,orient=T.HORIZONTAL,length=300,mode='determinate')
+pBar = ttk.Progressbar(f1,orient=T.HORIZONTAL,length=300,mode='determinate')
 pBar.grid(row=6, column=6, columnspan=3)
 
 #%% status box
@@ -339,8 +340,26 @@ def statusUpdate(phrase):
     statusBox.insert(T.END,phrase+"\n")
     statusBox.yview_moveto(1)
 
-statusBox = T.Text(root, height=10, width=40)
+statusBox = T.Text(f1, height=10, width=40)
 statusBox.grid(row=7,column=6,columnspan=3,rowspan=2)
+
+#%% RESULTS PANEL
+def browseForResults():
+    newPath = filedialog.askopenfilename(filetypes = (("Alchromy files","*.alch"),("all files","*.*")))
+    if newPath:
+        filePath.set(newPath)
+        #statusUpdate("Using file "+os.path.basename(filePath.get()))
+        #statusUpdate("Found ### waveforms.")
+    #enterFile.update()
+    #enterFile.xview_moveto(1)
+
+T.Label(f2, text="Results of run:").grid(row=0, column=0)
+T.Label(f2, text="Dataset_1.xlsx").grid(row=0, column=1)
+T.Label(f2, text="Browse for .alch file:").grid(row=1, column=0)
+enterFile = T.Entry(f1, textvariable=filePath)
+enterFile.grid(row=1, column=1, sticky="w")
+buttonBrowseResults = T.Button(f2,text="Browse",command=browseForFile)
+buttonBrowseResults.grid(row=1,column=1)
 
 #%% Make some defafult changes
 # default dir off
