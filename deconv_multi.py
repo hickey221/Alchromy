@@ -13,6 +13,7 @@ from scipy.optimize import curve_fit
 import pandas as pd
 #import glob
 import os
+import gzip
 
 #%% New functions
 def readFile(filePath):
@@ -20,10 +21,9 @@ def readFile(filePath):
     Reads in a csv or spreadsheet file. Returns a dataframe with data, and
     a dict with file information
     """
-    print('Looking at ',filePath)
     # Analyze the file path and save important parts
     fileDict = {'fullPath': filePath} # Initialize dict with given path
-    fileDict['name.ext'] = os.path.basename(filePath) # yields 'filename.ext'
+    fileDict['name.ext'] = os.path.basename(fileDict['fullPath']) # yields 'filename.ext'
     fileDict['name'],fileDict['ext'] = os.path.splitext(fileDict['name.ext']) # yields 'filename', '.ext'
     fileDict['dir'] = os.path.dirname(filePath) # yields 'data/somebatch/'
     fileDict['outDir'] = fileDict['dir'] + '/' + 'output' # yields data/somebatch/output
@@ -77,7 +77,7 @@ def multiColDeconv(refPath='refspec.dat',
                    flags={'Image':True,  # Output flags
                           'Text':True,
                           'Excel':True,
-                          'Kinetic':False,
+                          'Mode':'Simple',
                           'Note':'',
                           'Normalize':False,
                           'Verbose':False,
@@ -104,7 +104,7 @@ def multiColDeconv(refPath='refspec.dat',
     exp = cleanData(exp,flags['Cutoff'])
     timePoints = list(exp.drop('nm',axis=1))
     fileDict['Reference'] = refPath
-    
+
     # Check number of data cols
     nCols = len(list(exp.drop('nm',axis=1)))
 
@@ -139,7 +139,7 @@ def multiColDeconv(refPath='refspec.dat',
         if flags['Image']:
             if not os.path.exists(fileDict['outDir']):
                 os.makedirs(fileDict['outDir'])
-            plt.savefig(genFileName(fileDict,'png',flags), 
+            plt.savefig(genFileName(fileDict,'png',flags),
                         bbox_inches='tight',facecolor='white', dpi=300)
         plt.show()
         if flags['Text']:
@@ -149,7 +149,7 @@ def multiColDeconv(refPath='refspec.dat',
             c_final = kdf[species].iloc[-1]
             c_final_perc = 100 * c_final / np.sum(c_final)
             c_init_final_perc = pd.concat([c_init_perc,c_final_perc],axis=1)
-            
+
             if not os.path.exists(fileDict['outDir']):
                 os.makedirs(fileDict['outDir'])
             tbody = ["Kinetic data report",
@@ -166,20 +166,20 @@ def multiColDeconv(refPath='refspec.dat',
             tbody += ["Start and ending composition (percent)"]
             tbody += [c_init_final_perc.to_string(header=['initial','final'])]
             tbody += ["Component maximum and mimimums:"]
-            
+
             if flags['Verbose']:
                 # Print output report to console
                 print('\n'.join(tbody))
             # Print output report to .txt file
             f = open(genFileName(fileDict,'txt',flags),'w')
             f.write('\n'.join(tbody))
-            f.close()         
-            
+            f.close()
+
         return kdf
 
     if nCols < 1: # If none, we have a problem
-        raise Exception("Error: Can't find any data")
-    elif nCols == 1: 
+        return {'Code': 1, 'Message': "Couldn't find any data columns."}
+    elif nCols == 1:
         #%%%%%% CASE 1: SIMPLE DECONVOLUTION %%%%%%
         # If there's only 1 data column, name it 'data'
         exp.rename(columns={exp.columns[1]: 'data'}, inplace=True)
@@ -197,35 +197,34 @@ def multiColDeconv(refPath='refspec.dat',
             printResultsText(species, coeffs, perr, fileDict, flags)
         if flags['Excel']:
             printResultsExcel(exp,fileDict,flags)
+    elif flags['Mode']=='Kinetic':
+        #%%%%%% CASE 2: MULTIPLE COLUMNS, KINETIC DATA %%%%%% # Do kinetic function
+        kdf = kineticAnalysis(fileDict,flags)
+        if flags['Excel']:
+            printResultsExcel(kdf,fileDict, flags,idx=True)
+    elif flags['Mode']=='Replicate':
+        #%%%%%% CASE 3: MULTIPLE COLUMNS, REPLICATE DATA %%%%%%
+        if flags['Verbose']:
+            print("Running average of replicates deconv")
+        # Average all non-wavelength spectra into one
+        exp['data'] = exp[timePoints].mean(axis=1)
+        # Then perform deconvolution
+        coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
+        # Create a line of best fit using our results
+        exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
+        if flags['Verbose']:
+            print("Finished with coefficients",coeffs)
+        plotReplicates(exp,fileDict,flags)
+        if flags['Text']:
+            printResultsText(species, coeffs, perr, fileDict, flags)
+        if flags['Excel']:
+            printResultsExcel(exp,fileDict,flags)
     else:
-        #%%%%%% CASE 2: MULTIPLE COLUMNS, KINETIC DATA %%%%%%
-        if flags['Kinetic']: # Do kinetic function
-            kdf = kineticAnalysis(fileDict,flags)
-            if flags['Excel']:
-                printResultsExcel(kdf,fileDict, flags,idx=True)
-            print("Done")
-
-        else: 
-            #%%%%%% CASE 3: MULTIPLE COLUMNS, REPLICATE DATA %%%%%%
-            if flags['Verbose']:
-                print("Running average of replicates deconv")
-            # Average all non-wavelength spectra into one
-            exp['data'] = exp[timePoints].mean(axis=1)
-            # Then perform deconvolution
-            coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
-            # Create a line of best fit using our results
-            exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
-            if flags['Verbose']:
-                print("Finished with coefficients",coeffs)
-            plotReplicates(exp,fileDict,flags)
-            if flags['Text']:
-                printResultsText(species, coeffs, perr, fileDict, flags)
-            if flags['Excel']:
-                printResultsExcel(exp,fileDict,flags)
+        return {'Code': 1, 'Message': "Couldn't determine run mode."}
     #%% End of cases cases
     # Report status of completed run
     # TODO: Add more options for error codes
-    statusReport = {'Code': 0, 'Message': 'Finished without incident'} # No problems
+    statusReport = {'Code': 0, 'Message': 'Finished without incident.'} # No problems
 
     return statusReport
 
@@ -269,7 +268,7 @@ def plotStandard(exp, fileDict, flags):
     if flags['Image']:
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
-        plt.savefig(genFileName(fileDict,'png',flags), 
+        plt.savefig(genFileName(fileDict,'png',flags),
                     bbox_inches='tight',facecolor='white', dpi=300)
     if flags['Verbose']:
         print("Finished fitting, plotting image")
@@ -301,6 +300,7 @@ def plotReplicates(exp, fileDict, flags):
     ax.set_xlabel('Wavelength (nm)')
     ax.set_ylabel('Absorbance')
     ax.legend(loc=1)
+
     if flags['Image']:
         if not os.path.exists(fileDict['outDir']):
             os.makedirs(fileDict['outDir'])
@@ -309,7 +309,41 @@ def plotReplicates(exp, fileDict, flags):
         print("Finished fitting, plotting image")
         plt.show()
 
+def generateImage(exp, fileDict, flags):
+    # Set up figure
+    fig, ax = plt.subplots(1,1)
+    ax.set_title(fileDict['name'])
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel('Absorbance')
 
+    ss_r = np.sum((exp['data'] - exp['fit'])**2)
+    ss_t = np.sum((exp['data'] - np.mean(exp['data']))**2)
+    r2 = 1-(ss_r/ss_t)
+
+    # Plot data
+    if flags['Mode']=='Replicate':
+        exp['min'] = exp.drop(['nm','fit'],axis=1).min(axis=1)
+        exp['max'] = exp.drop(['nm','fit','min'],axis=1).max(axis=1)
+        # fill_between(x, y1, y2)
+        ax.fill_between(exp['nm'], exp['min'], exp['max'])
+    ax.plot(exp['nm'], exp['data'], 'b.-', label='data')
+    ax.plot(exp['nm'], exp['fit'], 'r-', label='fit')
+
+    # Print fit data and coefficients
+    tbox = r"$R^2$ fit: {:.5f}".format(r2)
+    anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
+    anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
+    ax.add_artist(anchored_text)
+    ax.legend(loc=1)
+
+    if flags['Image']:
+        if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
+        plt.savefig(genFileName(fileDict,'png',flags), bbox_inches='tight',facecolor='white', dpi=300)
+    if flags['Verbose']:
+        print("Finished fitting, plotting image")
+        plt.show()
+    pass
 
 def printResultsExcel(df, fileDict,flags, idx=False):
     if not os.path.exists(fileDict['outDir']):
