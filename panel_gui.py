@@ -127,11 +127,11 @@ buttonBrowseDir = T.Button(f1,text="Browse",command=browseForDir)
 buttonBrowseDir.grid(row=2,column=2)
 
 #%% Kinetic vs replicate
-kinetic = T.BooleanVar(f1,value=False)
+multiMode = T.StringVar(f1,value="Replicate")
 T.Label(f1, text="Treat multiple columns as").grid(row=5, column=3, sticky='w')
-radioReplicate = T.Radiobutton(f1,text="Replicate",variable=kinetic, value=False)
+radioReplicate = T.Radiobutton(f1,text="Replicate",variable=multiMode, value="Replicate")
 radioReplicate.grid(row=5, column=4, sticky='w')
-radioKinetic = T.Radiobutton(f1,text="Kinetic",variable=kinetic, value=True)
+radioKinetic = T.Radiobutton(f1,text="Kinetic",variable=multiMode, value="Kinetic")
 radioKinetic.grid(row=5, column=5, columnspan=2, sticky='w')
 
 #%% Normalize
@@ -298,10 +298,12 @@ def launchDeconv():
         barStep=0
         statusUpdate("No files found, aborting...")
         return
+
+
     flags={'Image':outGraph.get(),  # Output flags
                'Text':outTxt.get(),
                'Excel':outSpectra.get(),
-               'Kinetic':kinetic.get(),
+               'Mode':multiMode.get(),
                'Note':note.get(),
                'Normalize':normalize.get(),
                'Verbose':verbose.get(),
