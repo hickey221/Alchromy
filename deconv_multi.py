@@ -12,7 +12,6 @@ import packageResults
 import deconv
 import readFiles
 import kineticAnalysis
-import os
 
 def multiColDeconv(refPath='refspec.dat',
                    filePath='',
@@ -35,10 +34,6 @@ def multiColDeconv(refPath='refspec.dat',
     
     # Container for string passed back to GUI status box
     statusReport = {'Code': -1, 'Message': 'Initialized but not finished'}
-    
-    # Make temporary folder
-    if not os.path.exists('temp'):
-        os.makedirs('temp') 
 
     # Basic error handling:
     if len(filePath)==0:

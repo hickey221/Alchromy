@@ -24,6 +24,7 @@ def readFile(filePath):
     # Make sure the desired paths are writable
     if not os.path.exists(fileDict['outDir']):
         os.makedirs(fileDict['outDir'])
+    # Clear the temp directory, or create it
     if os.path.exists(fileDict['tempDir']):
         shutil.rmtree(fileDict['tempDir'])
     else:

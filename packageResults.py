@@ -13,12 +13,15 @@ import shutil
 import zipfile
 
 
-def genFileName(fileDict,fileExt,flags):
+def genFileName(fileDict,fileExt,flags,Temp=True):
     """
-    Generate an output file path based on run parameters
+    Generate an output file path based on run parameters. Save to temp folder 
+    initially.
     """
-
-    fileOut = fileDict['outDir']+'/'+fileDict['name']
+    if Temp:
+        fileOut = fileDict['tempDir']+'/'+fileDict['name']
+    else:
+        fileOut = fileDict['outDir']+'/'+fileDict['name']
     if flags['Mode']=='Kinetic':
         fileOut += '_kinetic'
     if flags['Note']:
@@ -114,20 +117,31 @@ def Pack(fileDict,results,flags):
     Zip results dict into a single archive (.alch)
     """
     # Check which files we want to keep, and copy to results folder
-    if flags['Image']:
-        shutil.copyfile(src, dst)
-    if flags['Text']:
-        shutil.copyfile(src, dst)
-    if flags['Excel']:
-        shutil.copyfile(src, dst)
+    src = fileDict['tempDir']
+    dst = fileDict['outDir']
+    srcFiles = os.listdir(src)
+    for srcFile in srcFiles:
+        srcFilePath = os.path.join(fileDict['tempDir'], srcFile)
+        if (os.path.isfile(srcFilePath)):
+            # Pack each file
+            with zipfile.ZipFile(genFileName(fileDict,'alch',flags,Temp=False), 'a') as zf:
+                zf.write(srcFilePath, srcFile)
+            # Check if we should copy the other files
+            if flags['Image']:
+                shutil.copy(srcFilePath, dst)
+            if flags['Text']:
+                shutil.copy(srcFilePath, dst)
+            if flags['Excel']:
+                shutil.copy(srcFilePath, dst)
         
     # Generate .alch file
     #z = zipfile.ZipFile('the_file.zip', 'w')
-       
+    """
     with zipfile.ZipFile('the_file.zip', 'w') as z:
         z.write('first file.txt')
     
     with zipfile.ZipFile(genFileName(fileDict,'zip',flags), 'a'):
         #for  each file in temp directory
         z.write('additional files.txt')
+    """
     
