@@ -345,23 +345,32 @@ def statusUpdate(phrase):
 statusBox = T.Text(f1, height=10, width=40)
 statusBox.grid(row=7,column=6,columnspan=3,rowspan=2)
 
+############################################################
 #%% RESULTS PANEL
+############################################################
+resultsPath = T.StringVar()
+resultsPath.set("")
 def browseForResults():
-    newPath = filedialog.askopenfilename(filetypes = (("Alchromy files","*.alch"),("all files","*.*")))
+    newPath = filedialog.askopenfilename(filetypes=[('Alchromy file','*.alch'),('All files','*.*')])
     if newPath:
-        filePath.set(newPath)
-        #statusUpdate("Using file "+os.path.basename(filePath.get()))
-        #statusUpdate("Found ### waveforms.")
-    #enterFile.update()
-    #enterFile.xview_moveto(1)
+        resultsPath.set(newPath)
+        #currentResultsFile.update()
+        currentResultsFile.xview_moveto(1)
 
 T.Label(f2, text="Results of run:").grid(row=0, column=0)
-T.Label(f2, text="Dataset_1.xlsx").grid(row=0, column=1)
+currentResultsFile = T.Entry(f2, textvariable=resultsPath)
+currentResultsFile.grid(row=0, column=1)
 T.Label(f2, text="Browse for .alch file:").grid(row=1, column=0)
-enterFile = T.Entry(f1, textvariable=filePath)
-enterFile.grid(row=1, column=1, sticky="w")
-buttonBrowseResults = T.Button(f2,text="Browse",command=browseForFile)
+
+buttonBrowseResults = T.Button(f2,text="Browse",command=browseForResults)
 buttonBrowseResults.grid(row=1,column=1)
+
+#%% Results plot
+# Create a canvas
+w, h = 300, 200
+canvas = T.Canvas(f2, width=w, height=h)
+canvas.grid(row=2,column=2, rowspan=3, columnspan=3)
+
 
 #%% Make some defafult changes
 # default dir off
