@@ -37,8 +37,10 @@ root.title('Alchromy - Spectral Deconvolution')
 n = ttk.Notebook(root)
 f1 = ttk.Frame(n)   # first page, which would get widgets gridded into it
 f2 = ttk.Frame(n)   # second page
+f3 = ttk.Frame(n)   # third page
 n.add(f1, text='Control panel')
 n.add(f2, text='Output')
+n.add(f3, text='Assays')
 n.grid()
 
 # make the top right close button close the main window
@@ -370,8 +372,31 @@ buttonBrowseResults.grid(row=1,column=1)
 w, h = 300, 200
 canvas = T.Canvas(f2, width=w, height=h)
 canvas.grid(row=2,column=2, rowspan=3, columnspan=3)
+############################################################
+#%%  ASSAYS PANEL                                          #
+############################################################
+T.Label(f3, text="Concentration calculator").grid(row=0, column=0)
+T.Label(f3, text="Winterbourn:").grid(row=2, column=3)
+T.Label(f3, text="Alayash:").grid(row=3, column=3)
 
+# High vs low met level
+highMet = T.BooleanVar()
+highMet.set(False)
+T.Label(f3, text="MetHb level:").grid(row=1, column=0)
+radioLowMet = T.Radiobutton(f3,text="Low",variable=highMet, value=False)
+radioLowMet.grid(row=1, column=1, sticky='w')
+radioHighMet = T.Radiobutton(f3,text="High",variable=highMet, value=True)
+radioHighMet.grid(row=1, column=2, sticky='w')
 
+# Dilution factor
+dilution = T.IntVar(value=1)
+T.Label(f3, text="Dilution factor:").grid(row=2, column=0)
+enterDilution = T.Entry(f3, textvariable=dilution,width=4)
+enterDilution.grid(row=2,column=1)
+
+############################################################
+#%% EXECUTION                                              #
+############################################################
 #%% Make some defafult changes
 # default dir off
 useFile()
