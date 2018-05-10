@@ -28,12 +28,15 @@ def Winterbourn(df, D=1):
         A577 = spec.loc[577][0]
     except:
         A577 = (spec.loc[576][0]+spec.loc[578][0])/2
+    A560 = spec.loc[560][0]
     A630 = spec.loc[630][0]
-    oxyHb = (66*A577 - 80*A630) * D
-    metHb = (-3*A577 + 279*A630) * D
-    totalHb = oxyHb+metHb
+    oxyHb = (-89*A560 + 119*A577 - 39*A630)*D/1000
+    metHb = (-55*A560 + 28*A577 + 307*A630)*D/1000
+    hemiHb = (233*A560 - 133*A577 - 114*A630)*D/1000
+    totalHb = oxyHb+metHb+hemiHb
     return {'oxyHb':oxyHb,
             'metHb':metHb,
+            'hemiHb':hemiHb,
             'totalHb':totalHb}
 
 def Alayash(df, D=1, highMet=False):
@@ -46,15 +49,15 @@ def Alayash(df, D=1, highMet=False):
     A576 = spec.loc[576][0]
     A630 = spec.loc[630][0]
     if highMet:
-        oxyHb = (-350.52*A541 + 388.95*A576 + 150.02*A630) * D
-        metHb = (-185.77*A541 + 171.88*A576 + 387.58*A630) * D
-        ferrylHb = (702.23*A541 - 657.43*A576 - 455.64*A630) * D
-        totalHb = oxyHb+metHb+ferrylHb
+        oxyHb = (-350.52*A541 + 388.95*A576 + 150.02*A630)*D/1000
+        metHb = (-185.77*A541 + 171.88*A576 + 387.58*A630)*D/1000
+        ferrylHb = (702.23*A541 - 657.43*A576 - 455.64*A630)*D/1000
+        totalHb =( oxyHb+metHb+ferrylHb)
     else:
-        oxyHb = (-75.78*A560 + 103.16*A576 - 38.39*A630) * D
-        metHb = (-26.09*A560 + 12.48*A576 - 280.7*A630) * D
-        deoxyHb = (132.6*A560 - 74.1*A576 - 68.33*A630) * D
-        totalHb = oxyHb+metHb+deoxyHb
+        oxyHb = (-75.78*A560 + 103.16*A576 - 38.39*A630)*D/1000
+        metHb = (-26.09*A560 + 12.48*A576 + 280.7*A630)*D/1000
+        deoxyHb = (132.6*A560 - 74.1*A576 - 68.33*A630)*D/1000
+        totalHb = (oxyHb+metHb+deoxyHb)
     return {'oxyHb':oxyHb,
             'metHb':metHb,
             'deoxyHb':deoxyHb,
@@ -68,7 +71,10 @@ def Isosbestic(df, D=1):
         A523 = (spec.loc[522][0]+spec.loc[524][0])/2    
     totalHb = (A523 * D) / 7.12
     return {'totalHb':totalHb}
-
-print("Winterbourn:",Winterbourn(df))
-print("Alayash:",Alayash(df))
-print("Isosbestic:",Isosbestic(df))
+result_wb = Winterbourn(df,D=20)
+result_al = Alayash(df,D=20)
+result_iso = Isosbestic(df,D=20)
+print("Results of total hb calculation:")
+print("Winterbourn:",result_wb['totalHb']*16.125)
+print("Alayash:",result_al['totalHb']*16.125)
+print("Isosbestic:",result_iso['totalHb']*16.125)
