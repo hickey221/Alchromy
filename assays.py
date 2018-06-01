@@ -39,6 +39,10 @@ def Winterbourn(df, D=1):
             'hemiHb':hemiHb,
             'totalHb':totalHb}
 
+def Benesch(df, D=1, highMet=False):
+    
+    pass
+
 def Alayash(df, D=1, highMet=False):
     spec = df.set_index('nm') # Use int values of wavelength as index
     try:
@@ -52,7 +56,7 @@ def Alayash(df, D=1, highMet=False):
         oxyHb = (-350.52*A541 + 388.95*A576 + 150.02*A630)*D/1000
         metHb = (-185.77*A541 + 171.88*A576 + 387.58*A630)*D/1000
         ferrylHb = (702.23*A541 - 657.43*A576 - 455.64*A630)*D/1000
-        totalHb =( oxyHb+metHb+ferrylHb)
+        totalHb =(oxyHb+metHb+ferrylHb)
     else:
         oxyHb = (-75.78*A560 + 103.16*A576 - 38.39*A630)*D/1000
         metHb = (-26.09*A560 + 12.48*A576 + 280.7*A630)*D/1000

@@ -18,6 +18,10 @@ def genFileName(fileDict,fileExt,flags,Temp=True):
     Generate an output file path based on run parameters. Save to temp folder 
     initially.
     """
+    if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
+    if not os.path.exists(fileDict['tempDir']):
+            os.makedirs(fileDict['tempDir'])
     if Temp:
         fileOut = fileDict['tempDir']+'/'+fileDict['name']
     else:
@@ -119,6 +123,10 @@ def Pack(fileDict,results,flags):
     # Check which files we want to keep, and copy to results folder
     src = fileDict['tempDir']
     dst = fileDict['outDir']
+    if not os.path.exists(fileDict['outDir']):
+            os.makedirs(fileDict['outDir'])
+    if not os.path.exists(fileDict['tempDir']):
+            os.makedirs(fileDict['tempDir'])
     srcFiles = os.listdir(src)
     for srcFile in srcFiles:
         srcFilePath = os.path.join(fileDict['tempDir'], srcFile)

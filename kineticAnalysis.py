@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import deconv
 import matplotlib.pyplot as plt
+import packageResults
 
 def kineticAnalysis(fileDict,timePoints,species,exp,ref,flags):
     results = {}
@@ -37,7 +38,8 @@ def kineticAnalysis(fileDict,timePoints,species,exp,ref,flags):
     ax.set_xlabel('Time')
     ax.set_ylabel('Fractional composition')
     results['Image'] = fig
-
+    plt.savefig(packageResults.genFileName(fileDict,'png',flags), bbox_inches='tight',facecolor='white', dpi=300)
+    
     #TODO: More specific text output for kinetic data
     c_init = kdf[species].iloc[0]
     c_init_perc = 100 * c_init / np.sum(c_init)

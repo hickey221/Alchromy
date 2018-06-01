@@ -90,6 +90,6 @@ fit = Hb_6band(nm,*popt)
 print(popt[0],popt[3],popt[6],popt[9],popt[12],popt[15])
 #plt.plot(xrange,Hb_6band(xrange,*popt))
 plt.plot(nm,ydata,nm,fit)
-
-plt.savefig('tempout.png',dpi=150)
+#plt.show()
+#plt.savefig('tempout.png',dpi=150)
 
