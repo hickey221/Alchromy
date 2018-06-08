@@ -22,6 +22,7 @@ def kineticAnalysis(fileDict,timePoints,species,exp,ref,flags):
     species_perc = [sp + ' (%)' for sp in species] # % of total
     kdf = pd.concat([kdf,pd.DataFrame(columns=species_err)])
     for timePoint in timePoints:
+        #print(timePoint)
         # Make call to curve_fit
         coeffs, perr = deconv.doFitting(ref.drop('nm',axis=1), exp[timePoint])
         # Extract error and coefficients from results
@@ -36,6 +37,17 @@ def kineticAnalysis(fileDict,timePoints,species,exp,ref,flags):
     # Area plot between lines
     ax = kdf.drop(species_err+species,axis=1).plot.area(lw=0)
     ax.set_xlabel('Time')
+    timeLabels = [round(float(t),2) for t in timePoints]
+    if flags['Verbose']:
+        print("Timepoints",timeLabels) 
+        
+    # Find what x labels were automatically chosen
+    label_texts = [label.get_text() for label in ax.xaxis.get_ticklabels()]
+    # Convert to float, round, then back to string (dumb.)
+    label_nums = [str(round(float(t),2)) for t in label_texts[:-1]]
+    # Set those as new labels
+    ax.set_xticklabels(label_nums)
+
     ax.set_ylabel('Fractional composition')
     results['Image'] = fig
     plt.savefig(packageResults.genFileName(fileDict,'png',flags), bbox_inches='tight',facecolor='white', dpi=300)
