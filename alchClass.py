@@ -25,28 +25,28 @@ class Alch():
     An Alchromy analysis object. Linked to a single data file. Contains objects
     for each result produced.
     """
-    def __init__(self,dataPath,refPath,name=None):
+    def __init__(self):
         # Initialize parameters
-        self.dataPath = dataPath
+        #self.dataPath = ''
         self.exp = None
         #self.outputPath = outputPath
-        self.refPath = refPath
+        #self.refPath = refPath
+        #self.refPath = ''
         self.result_list = []
         # Initialize methods
-        self.identify(name)
         #self.exp, self.dataCols = self.read_file()
         self.settings = {'Normalize':False,
                     'Cutoff':(450,700)}
         
-    def identify(self,name):
+    def identify(self):
         """
         Establish information about file name and location
         """
         self.dirName = os.path.dirname(self.dataPath)
         self.fullName = os.path.basename(self.dataPath)
         self.simpleName, self.ext = os.path.splitext(self.fullName)
-        if name:
-            self.nickName = name
+        #if name:
+            #self.nickName = name
             
     def generate_result(self,ignored=[]):
         """
@@ -81,21 +81,25 @@ class Alch():
                 df.rename(columns={df.columns[1]:'0'}, inplace=True)
          
             dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
-            
+            #print('Read '+str(dataCols)+' during read_file()')
             return df, dataCols 
         else:
             print("Error: File must be of type:",allowedFiles)
             
-    def load_exp(self):
+    def load_exp(self, dataPath):
+        self.dataPath = dataPath
         if self.exp:
             warn("Exp data already exists")
         try:
             self.exp, self.dataCols = self.read_file(self.dataPath)
-            self.exp = self.clean_data(self.exp)
+            self.exp = self.clean_data(self.exp)    
+            self.identify() # Change names to reflect new data
+            print('Read in '+self.dataPath)
         except:
                 print("Error in reading files, aborting!")
         
-    def load_ref(self):
+    def load_ref(self, refPath):
+        self.refPath = refPath
         print("Refpath is",self.refPath)
         self.ref, self.species = self.read_file(self.refPath)
         self.ref = self.clean_data(self.ref)
@@ -132,7 +136,7 @@ class Alch():
         df = df[df['nm'] % 2 == 0]
         return df
     
-#%%    
+   #%% Result class
 class Result():
     """
     A result object containing fit data, run parameters, and statistics
@@ -203,6 +207,7 @@ class Result():
         #plt.show()
         return fig
 
+#%% Execute code
 if __name__=='__main__':
     from alchClass import Alch # Prevent object from belonging to __main__
     fname = 'output/A.alch'
@@ -219,6 +224,6 @@ if __name__=='__main__':
     with open(fname, 'wb') as pickle_file:
         pickle.dump(A, pickle_file)
     
-    with open(fname, 'rb') as pickle_file:
-        B = pickle.load(pickle_file)
+    #with open(fname, 'rb') as pickle_file:
+        #B = pickle.load(pickle_file)
     
