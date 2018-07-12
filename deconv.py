@@ -12,6 +12,7 @@ def func(X, *params):
     return np.stack(params).dot(X)
 
 def doFitting(refCols,expCol):
+    #print("reference:\n",refCols,"Experimental\n",expCol)
     k_init = np.ones_like(list(refCols)) # All initial guesses = 1
     myBounds = (0,np.inf) # Coefficients between 0 and +infinity
     coeffs, pcov = curve_fit(func, refCols.T, expCol, p0=k_init, bounds=myBounds)

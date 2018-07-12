@@ -1,0 +1,1 @@
+start "Alchromy server" /min .exec.bat ^& exit

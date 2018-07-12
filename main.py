@@ -42,6 +42,7 @@ class A_main:
 
         # Menubar
         self.make_menu()
+        #self.custom_menu = A_Menu(self.master)
         #self.master.overrideredirect(True) # removes titlebar
 
         # Make frames and pack them
@@ -52,7 +53,7 @@ class A_main:
         self.arrange()
 
     def arrange(self):
-        #self.menuFrame.pack(side=T.TOP)
+        #self.custom_menu.pack(side=T.TOP,fill=T.X)
         self.leftFrame.pack(side=T.LEFT, fill=T.BOTH)
         self.rightFrame.pack(side=T.RIGHT,fill=T.Y)
 
@@ -79,8 +80,9 @@ class A_main:
 
     def about_Box(self):
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
+    
 
-"""
+
 class A_Menu:
     def __init__(self, master):
         self.master = master
@@ -88,13 +90,26 @@ class A_Menu:
         self.m_File = T.Label(self.frame, text='File')
         self.m_View = T.Label(self.frame, text='View')
         
-        self.m_Min = T.Button(self.frame, text='Min',command=self.Min)
+        # Grabbable part in center of bar
+        self.m_grip = T.Label(self.frame, bg='black')
+        
+        self.m_Min = T.Button(self.frame, text='__',command=self.Min)
         self.m_Close = T.Button(self.frame, text='X',command=self.Close)
         
         self.arrange()
+        # Click-n-drag stuff
+        self.m_grip.bind("<ButtonPress-1>", self.StartMove)
+        self.m_grip.bind("<ButtonRelease-1>", self.StopMove)
+        self.m_grip.bind("<B1-Motion>", self.OnMotion)
+        
+        self.m_grip.bind("<Map>",self.frame_mapped)
         
     def Min(self):
-        self.master.iconify()
+        #self.master.iconify()
+        self.master.update_idletasks()
+        self.master.overrideredirect(False)
+        #root.state('withdrawn')
+        self.master.state('iconic')
         
     def Max(self):
         self.master.destroy()
@@ -102,10 +117,33 @@ class A_Menu:
     def Close(self):
         self.master.destroy()
         
+    def StartMove(self, event):
+        self.x = event.x
+        self.y = event.y
+
+    def StopMove(self, event):
+        self.x = None
+        self.y = None
+
+    def OnMotion(self, event):
+        deltax = event.x - self.x
+        deltay = event.y - self.y
+        x = self.master.winfo_x() + deltax
+        y = self.master.winfo_y() + deltay
+        self.master.geometry("+%s+%s" % (x, y))
+        
+    def frame_mapped(self,e):
+        print(self,e)
+        self.master.update_idletasks()
+        self.master.overrideredirect(True)
+        self.master.state('normal')
+        
     def arrange(self):
         # Pack everything together
         self.m_File.pack(side=T.LEFT)
         self.m_View.pack(side=T.LEFT)
+        
+        self.m_grip.pack(side=T.LEFT, expand=1, fill=T.BOTH)
         
         self.m_Close.pack(side=T.RIGHT)
         self.m_Min.pack(side=T.RIGHT)
@@ -113,8 +151,7 @@ class A_Menu:
     def pack(self,*args,**kwargs):
         # To be called by master window
         self.frame.pack(*args,**kwargs)
-        self.configure(background='yellow')
-"""     
+  
 #%% LEFT FRAME - MAIN CONFIG PANEL
 class A_L_frame:
     def __init__(self,master):
