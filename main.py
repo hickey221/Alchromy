@@ -36,7 +36,6 @@ class A_main:
         # General main window stuff
         self.master.title('Alchromy - Spectral Deconvolution')
         self.master.geometry('500x300')
-
         self.selectedTheme = T.StringVar(value='light')
         #self.theme_light()
 
@@ -82,75 +81,75 @@ class A_main:
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
     
 
-
-class A_Menu:
-    def __init__(self, master):
-        self.master = master
-        self.frame = T.Frame(self.master)
-        self.m_File = T.Label(self.frame, text='File')
-        self.m_View = T.Label(self.frame, text='View')
-        
-        # Grabbable part in center of bar
-        self.m_grip = T.Label(self.frame, bg='black')
-        
-        self.m_Min = T.Button(self.frame, text='__',command=self.Min)
-        self.m_Close = T.Button(self.frame, text='X',command=self.Close)
-        
-        self.arrange()
-        # Click-n-drag stuff
-        self.m_grip.bind("<ButtonPress-1>", self.StartMove)
-        self.m_grip.bind("<ButtonRelease-1>", self.StopMove)
-        self.m_grip.bind("<B1-Motion>", self.OnMotion)
-        
-        self.m_grip.bind("<Map>",self.frame_mapped)
-        
-    def Min(self):
-        #self.master.iconify()
-        self.master.update_idletasks()
-        self.master.overrideredirect(False)
-        #root.state('withdrawn')
-        self.master.state('iconic')
-        
-    def Max(self):
-        self.master.destroy()
-        
-    def Close(self):
-        self.master.destroy()
-        
-    def StartMove(self, event):
-        self.x = event.x
-        self.y = event.y
-
-    def StopMove(self, event):
-        self.x = None
-        self.y = None
-
-    def OnMotion(self, event):
-        deltax = event.x - self.x
-        deltay = event.y - self.y
-        x = self.master.winfo_x() + deltax
-        y = self.master.winfo_y() + deltay
-        self.master.geometry("+%s+%s" % (x, y))
-        
-    def frame_mapped(self,e):
-        print(self,e)
-        self.master.update_idletasks()
-        self.master.overrideredirect(True)
-        self.master.state('normal')
-        
-    def arrange(self):
-        # Pack everything together
-        self.m_File.pack(side=T.LEFT)
-        self.m_View.pack(side=T.LEFT)
-        
-        self.m_grip.pack(side=T.LEFT, expand=1, fill=T.BOTH)
-        
-        self.m_Close.pack(side=T.RIGHT)
-        self.m_Min.pack(side=T.RIGHT)
-
-    def pack(self,*args,**kwargs):
-        # To be called by master window
-        self.frame.pack(*args,**kwargs)
+#%% CUSTOM MENU - NOT IN USE
+#class A_Menu:
+#    def __init__(self, master):
+#        self.master = master
+#        self.frame = T.Frame(self.master)
+#        self.m_File = T.Label(self.frame, text='File')
+#        self.m_View = T.Label(self.frame, text='View')
+#        
+#        # Grabbable part in center of bar
+#        self.m_grip = T.Label(self.frame, bg='black')
+#        
+#        self.m_Min = T.Button(self.frame, text='__',command=self.Min)
+#        self.m_Close = T.Button(self.frame, text='X',command=self.Close)
+#        
+#        self.arrange()
+#        # Click-n-drag stuff
+#        self.m_grip.bind("<ButtonPress-1>", self.StartMove)
+#        self.m_grip.bind("<ButtonRelease-1>", self.StopMove)
+#        self.m_grip.bind("<B1-Motion>", self.OnMotion)
+#        
+#        self.m_grip.bind("<Map>",self.frame_mapped)
+#        
+#    def Min(self):
+#        #self.master.iconify()
+#        self.master.update_idletasks()
+#        self.master.overrideredirect(False)
+#        #root.state('withdrawn')
+#        self.master.state('iconic')
+#        
+#    def Max(self):
+#        self.master.destroy()
+#        
+#    def Close(self):
+#        self.master.destroy()
+#        
+#    def StartMove(self, event):
+#        self.x = event.x
+#        self.y = event.y
+#
+#    def StopMove(self, event):
+#        self.x = None
+#        self.y = None
+#
+#    def OnMotion(self, event):
+#        deltax = event.x - self.x
+#        deltay = event.y - self.y
+#        x = self.master.winfo_x() + deltax
+#        y = self.master.winfo_y() + deltay
+#        self.master.geometry("+%s+%s" % (x, y))
+#        
+#    def frame_mapped(self,e):
+#        print(self,e)
+#        self.master.update_idletasks()
+#        self.master.overrideredirect(True)
+#        self.master.state('normal')
+#        
+#    def arrange(self):
+#        # Pack everything together
+#        self.m_File.pack(side=T.LEFT)
+#        self.m_View.pack(side=T.LEFT)
+#        
+#        self.m_grip.pack(side=T.LEFT, expand=1, fill=T.BOTH)
+#        
+#        self.m_Close.pack(side=T.RIGHT)
+#        self.m_Min.pack(side=T.RIGHT)
+#
+#    def pack(self,*args,**kwargs):
+#        # To be called by master window
+#        self.frame.pack(*args,**kwargs)
   
 #%% LEFT FRAME - MAIN CONFIG PANEL
 class A_L_frame:
@@ -165,19 +164,30 @@ class A_L_frame:
         self.str_dataLoaded = T.StringVar(self.frame)
         self.lab_dataLoaded = T.Label(self.frame, textvariable=self.str_dataLoaded, width=20)
         self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.fileWindow.Focus)  
+        
+        self.str_refLoaded = T.StringVar(self.frame)
+        self.lab_refLoaded = T.Label(self.frame, textvariable=self.str_refLoaded, width=20)
+        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.fileWindow.Focus)  
 
         self.status_update()
         self.arrange()
 
     def status_update(self):
-        # Check if data file has been locked in
         print('Updating status')
+        # Check if data file has been locked in
         if self.fileWindow.filePath.get():
             self.str_dataLoaded.set('Data file loaded')
             self.lab_dataLoaded.config(bg='green')
         else:
             self.str_dataLoaded.set('Data not loaded')
             self.lab_dataLoaded.config(bg='red')
+        # Check for reference
+        if self.fileWindow.refPath.get():
+            self.str_refLoaded.set('Reference file loaded')
+            self.lab_refLoaded.config(bg='green')
+        else:
+            self.str_refLoaded.set('Reference not loaded')
+            self.lab_refLoaded.config(bg='red')
         #self.lab_dataLoaded.update()
     
     def pack(self,*args,**kwargs):
@@ -187,15 +197,18 @@ class A_L_frame:
     def arrange(self):
         # Pack everything together
         self.lab_selectFile.pack(side=T.TOP)
-        self.lab_dataLoaded.pack(side=T.LEFT)
+        self.lab_dataLoaded.pack(side=T.LEFT, anchor=T.W)
         self.but_selectFile.pack(side=T.LEFT)
+        
+        self.lab_refLoaded.pack(side=T.BOTTOM,anchor=T.W)
+        self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
 
 #%% RIGHT FRAME - LOGO, RESULTS
 class A_R_frame:
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
         self.frame = T.Frame(self.master) # This frame, where widgets will live
-        self.make_logo()
+        #self.make_logo()
         self.arrange()
 
     def make_logo(self):
@@ -211,8 +224,9 @@ class A_R_frame:
         self.frame.pack(*args,**kwargs)
 
     def arrange(self):
+        pass
         # Pack everything together
-        self.logo.pack(side=T.TOP)
+        #self.logo.pack(side=T.TOP)
 
 #%% NEW WINDOW FOR LOADING DATA
 class a_load_file_dialog:
@@ -220,6 +234,7 @@ class a_load_file_dialog:
         # Initialize bare minimum, wait for Open() to be called to do the rest
         self.master = master
         self.filePath = T.StringVar(value='')
+        self.refPath = T.StringVar(value='')
         self.tempPath = T.StringVar() # Goes into filePath when using Save()
         self.windowOpen = None # Object starts without a window
 
@@ -245,6 +260,7 @@ class a_load_file_dialog:
         self.windowOpen = True # Window officially exists now
 
     def Browse(self):
+        # Open file browse dialog
         newPath = filedialog.askopenfilename(parent = self.window,filetypes=[('Data file','*.xls *.csv *.dat'),('All files','*.*')])
         if not newPath:
             print('Nothing chosen, nothing saved')
@@ -290,6 +306,7 @@ class a_load_file_dialog:
         self.window.destroy()
 
     def Save(self):
+        # Commit changes back to the master
         print('Saving ' + self.tempPath.get())
         self.filePath.set(self.tempPath.get())
         self.master.status_update()
@@ -333,5 +350,7 @@ class a_load_file_dialog:
 
 #%% Execute loop
 root = T.Tk()
+
+root.iconbitmap('lib/alch_flask_icon.ico')
 app = A_main(root)
 root.mainloop()
