@@ -157,21 +157,42 @@ class A_L_frame:
         self.master = master # Expect this to be main_gui instance
         self.frame = T.Frame(self.master) # This frame, where widgets will live
         self.fileWindow = a_load_file_dialog(self) # Initialize but do not open
+        self.refWindow = a_load_file_dialog(self) # Initialize but do not open
 
         self.Alch = alchClass.Alch() # Initialize an Alch instance
 
         self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
         self.str_dataLoaded = T.StringVar(self.frame)
         self.lab_dataLoaded = T.Label(self.frame, textvariable=self.str_dataLoaded, width=20)
-        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.fileWindow.Focus)  
+        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.get_data)  
         
+        # TODO: Need a way of determining whether we're getting exp or ref data
         self.str_refLoaded = T.StringVar(self.frame)
         self.lab_refLoaded = T.Label(self.frame, textvariable=self.str_refLoaded, width=20)
-        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.fileWindow.Focus)  
+        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.get_ref)  
 
         self.status_update()
         self.arrange()
 
+    def get_data(self):
+        # Pop up window and allow for file loading
+        self.fileWindow.Focus() 
+        # Assign local variable to whatever ended up in the file browse window
+        # TODO: Figure out where to save this
+        # TODO: Save actual columns to the Alch, not just the file path
+        filePath = self.fileWindow.filePath.get()
+        #self.status_update() # moved to Save()
+         
+    def get_ref(self):
+        # Pop up window and allow for file loading
+        self.refWindow.Focus() 
+        # Assign local variable to whatever ended up in the file browse window
+        # TODO: Figure out where to save this
+        # TODO: Save actual columns to the Alch, not just the file path
+        refPath = self.refWindow.filePath.get()
+        #self.status_update() # moved to Save()
+
+    
     def status_update(self):
         print('Updating status')
         # Check if data file has been locked in
@@ -307,10 +328,13 @@ class a_load_file_dialog:
 
     def Save(self):
         # Commit changes back to the master
+        # TODO: Need a way of determining whether we're getting exp or ref data
+        # Maybe return data, instead of modifying master?
         print('Saving ' + self.tempPath.get())
         self.filePath.set(self.tempPath.get())
-        self.master.status_update()
+        self.master.status_update() 
         self.window.withdraw()
+        return self.tempPath.get()
 
     def Focus(self):
         if self.windowOpen:
