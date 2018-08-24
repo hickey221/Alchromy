@@ -13,6 +13,12 @@ from PIL import Image, ImageTk
 from warnings import warn
 import pandas as pd
 import os
+# For result GUI
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
 # Custom imports
 #from themes import * # For dict solarized
 import alchClass
@@ -93,77 +99,6 @@ class A_main:
     def about_Box(self):
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
 
-
-#%% CUSTOM MENU - NOT IN USE
-#class A_Menu:
-#    def __init__(self, master):
-#        self.master = master
-#        self.frame = T.Frame(self.master)
-#        self.m_File = T.Label(self.frame, text='File')
-#        self.m_View = T.Label(self.frame, text='View')
-#
-#        # Grabbable part in center of bar
-#        self.m_grip = T.Label(self.frame, bg='black')
-#
-#        self.m_Min = T.Button(self.frame, text='__',command=self.Min)
-#        self.m_Close = T.Button(self.frame, text='X',command=self.Close)
-#
-#        self.arrange()
-#        # Click-n-drag stuff
-#        self.m_grip.bind("<ButtonPress-1>", self.StartMove)
-#        self.m_grip.bind("<ButtonRelease-1>", self.StopMove)
-#        self.m_grip.bind("<B1-Motion>", self.OnMotion)
-#
-#        self.m_grip.bind("<Map>",self.frame_mapped)
-#
-#    def Min(self):
-#        #self.master.iconify()
-#        self.master.update_idletasks()
-#        self.master.overrideredirect(False)
-#        #root.state('withdrawn')
-#        self.master.state('iconic')
-#
-#    def Max(self):
-#        self.master.destroy()
-#
-#    def Close(self):
-#        self.master.destroy()
-#
-#    def StartMove(self, event):
-#        self.x = event.x
-#        self.y = event.y
-#
-#    def StopMove(self, event):
-#        self.x = None
-#        self.y = None
-#
-#    def OnMotion(self, event):
-#        deltax = event.x - self.x
-#        deltay = event.y - self.y
-#        x = self.master.winfo_x() + deltax
-#        y = self.master.winfo_y() + deltay
-#        self.master.geometry("+%s+%s" % (x, y))
-#
-#    def frame_mapped(self,e):
-#        print(self,e)
-#        self.master.update_idletasks()
-#        self.master.overrideredirect(True)
-#        self.master.state('normal')
-#
-#    def arrange(self):
-#        # Pack everything together
-#        self.m_File.pack(side=T.LEFT)
-#        self.m_View.pack(side=T.LEFT)
-#
-#        self.m_grip.pack(side=T.LEFT, expand=1, fill=T.BOTH)
-#
-#        self.m_Close.pack(side=T.RIGHT)
-#        self.m_Min.pack(side=T.RIGHT)
-#
-#    def pack(self,*args,**kwargs):
-#        # To be called by master window
-#        self.frame.pack(*args,**kwargs)
-
 #%% LEFT FRAME - MAIN CONFIG PANEL
 class A_L_frame:
     """
@@ -210,6 +145,7 @@ class A_L_frame:
             # If it all looks good, tell Alch to get to make a new result
             Vprint('Calling for a result to be generated')
             self.Alch.generate_result()
+            self.Alch.plot_results()
 
     def status_update(self):
         """
@@ -291,6 +227,7 @@ class A_LoadWindow:
     def __init__(self,master,colType):
         # Initialize bare minimum, wait for Open() to be called to do the rest
         self.master = master
+        self.root = self.master.master
         self.colType = colType # 'exp' or 'ref'
         self.filePath = T.StringVar(value='')
         self.oldPath = T.StringVar(value='')
@@ -306,8 +243,9 @@ class A_LoadWindow:
 
     def Open(self):
         # The rest of the initialization procedure, opening the window
-        self.window = T.Toplevel(self.master.master) # All the way up to root
+        self.window = T.Toplevel(self.root) # All the way up to root
         self.window.geometry('300x300')
+        self.window.iconbitmap('lib/alch_flask_icon.ico')
         self.Frames() # Gives topFrame, midFrame, botFrame
 
         self.topInfo = T.Label(self.topFrame, text='Upload your data file here')
@@ -398,11 +336,17 @@ class A_LoadWindow:
             warn('Something went wrong populating column list')
 
     def Cancel(self):
+        """
+        Discard changes since window has been open
+        """
         Vprint('Cancelling ' + self.filePath.get())
         Vprint('Revering back to ' + self.oldPath.get())
-        # Discard our changes
-        #self.tempPath.set(self.filePath.get())
+        
         self.filePath.set(self.oldPath.get())
+        #TODO: Re-select correct listbox items
+        # for item in cols
+            # 
+            #self.listItems.select_set(0)
         # Hide window but preserve the object
         self.window.withdraw()
         #self.windowOpen = None
@@ -412,6 +356,7 @@ class A_LoadWindow:
         Vprint('Throwing it all away')
         self.filePath.set('')
         self.oldPath.set('')
+        # Erase data saved to the Alch
         self.windowOpen = None
         self.master.status_update()
         self.window.destroy()
@@ -484,8 +429,15 @@ class A_ResultWindow:
     """
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
+        self.root = self.master.master # All the way up to root
         self.results = master.Alch.result_list # List of result objects
+        
+        # Open a window
+        self.window = T.Toplevel(self.root) 
+        self.window.geometry('300x300')
+        self.window.iconbitmap('lib/alch_flask_icon.ico')
         # List of results from that Alch (may be empty)
+        self.F = Figure(figsize=(5, 4), dpi=100)
 
     def make_results(self):
         # For each item in a single result

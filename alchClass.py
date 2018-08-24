@@ -67,7 +67,7 @@ class Alch():
         #workingRef = self.ref.drop(ignored, axis=1)
 
         # Generate a new object instance from result()
-        new_result = Result(self.ref)
+        new_result = Result(self,self.ref)
         # Add to results_list
         self.result_list.append(new_result)
 
@@ -117,6 +117,11 @@ class Alch():
         df = df[df['nm'] <= self.settings['Cutoff'][1]]
         df = df[df['nm'] % 2 == 0]
         return df
+    def Reset(self):
+        """
+        Erases all exp and ref data
+        """
+        pass
 
     def read_file(self,filePath):
         """
@@ -173,7 +178,7 @@ class Alch():
         self.ref = self.clean_data(self.ref)
 
    #%% Result class
-class Result():
+class Result:
     """
     A result object containing fit data, run parameters, and statistics
     """
@@ -186,6 +191,7 @@ class Result():
         self.expData = self.owner.exp # Grab data from owner
         self.run_deconv()
         self.do_stats()
+        self.export()
 
     def run_deconv(self):
         """
