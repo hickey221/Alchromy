@@ -3,6 +3,15 @@
 Created on Tue Jun 12 17:41:47 2018
 
 @author: hickey.221
+
+AlchClass.py
+
+Describes the Alch object class. An Alch instance contains a set of data, 
+references, and results objects from an Alchromy analysis.
+
+TODO: Should read_file be here? Why not move that to a separate section and
+then send clean dataframes to the Alch instance
+
 """
 # External packages
 import os
@@ -27,84 +36,57 @@ class Alch():
     """
     def __init__(self):
         # Initialize parameters
-        #self.dataPath = ''
+        self.dataPath = None
+        self.refPath = None
         self.exp = None
+        self.ref = None
         #self.outputPath = outputPath
         #self.refPath = refPath
-        #self.refPath = ''
         self.result_list = []
         # Initialize methods
         #self.exp, self.dataCols = self.read_file()
         self.settings = {'Normalize':False,
                     'Cutoff':(450,700)}
         
-    def identify(self):
+    def identify(self,dataPath):
         """
         Establish information about file name and location
         """
-        self.dirName = os.path.dirname(self.dataPath)
-        self.fullName = os.path.basename(self.dataPath)
+        self.dirName = os.path.dirname(dataPath)
+        self.fullName = os.path.basename(dataPath)
         self.simpleName, self.ext = os.path.splitext(self.fullName)
         #if name:
             #self.nickName = name
             
-    def generate_result(self,ignored=[]):
+    def generate_result(self):
         """
         Given settings about a run, generate a result object
+        
         """
-        workingRef = self.ref.drop(ignored, axis=1)
-        settings = {'Normalize':False,
-                    'Cutoff':(450,700) }
-        # Select which reference cols are being used
-        #ref = self.ref.drop(ignored, axis=1)
+        # Deprec. because we should only have good refs by now
+        #workingRef = self.ref.drop(ignored, axis=1)
+
         # Generate a new object instance from result()
-        new_result = Result(self,workingRef)
+        new_result = Result(self.ref)
         # Add to results_list
         self.result_list.append(new_result)
-        
-    def read_file(self,filePath):
-        _, ext = os.path.splitext(filePath)
-        allowedFiles = ['.dat','.txt','.csv','.xls','.xlsx']
-            # Read in the file
-        print("My extension is",ext)
-        if ext in allowedFiles:
-            if ext in ['.xls','.xlsx']:
-                print("Reading as excel")
-                df = pd.read_excel(filePath)
-            else:
-                print("Reading as csv")
-                df = pd.read_csv(filePath,'\t')
-            # Rename first column as 'nm' for wavelengths
-            df.rename(columns={df.columns[0]:'nm'}, inplace=True)
-            # Bug fix for duplicate 2nd column name in some Olis-produced files
-            if df.columns[1] == '0.1':
-                df.rename(columns={df.columns[1]:'0'}, inplace=True)
-         
-            dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
-            #print('Read '+str(dataCols)+' during read_file()')
-            return df, dataCols 
+
+    def load_cols(self,df,colType,filePath):
+        """
+        Accept a dataframe of columns of exp data
+        """
+        if colType=='exp':
+            self.exp = self.clean_data(df)
+            self.dataCols = list(df.drop('nm',axis=1))
+            self.dataPath = filePath
+            self.identify(self.dataPath)
+        elif colType=='ref':
+            self.ref = self.clean_data(df)
+            self.species = list(df.drop('nm',axis=1))
+            self.refPath = filePath
         else:
-            print("Error: File must be of type:",allowedFiles)
-            
-    def load_exp(self, dataPath):
-        self.dataPath = dataPath
-        if self.exp:
-            warn("Exp data already exists")
-        try:
-            self.exp, self.dataCols = self.read_file(self.dataPath)
-            self.exp = self.clean_data(self.exp)    
-            self.identify() # Change names to reflect new data
-            print('Read in '+self.dataPath)
-        except:
-                print("Error in reading files, aborting!")
-        
-    def load_ref(self, refPath):
-        self.refPath = refPath
-        print("Refpath is",self.refPath)
-        self.ref, self.species = self.read_file(self.refPath)
-        self.ref = self.clean_data(self.ref)
-        #ref = ref.drop(ignored, axis=1)
-            
+            warn('Unknown colType')
+             
     def save_pdf(self,fname, fig):
         doc = PdfPages(fname)
         fig.savefig(doc, format='pdf')
@@ -136,6 +118,60 @@ class Alch():
         df = df[df['nm'] % 2 == 0]
         return df
     
+    def read_file(self,filePath):
+        """
+        Deprecated based on use of GUI, but preserved for command line use of 
+        alchClass.
+        """
+        _, ext = os.path.splitext(filePath)
+        allowedFiles = ['.dat','.txt','.csv','.xls','.xlsx']
+            # Read in the file
+        print("My extension is",ext)
+        if ext in allowedFiles:
+            if ext in ['.xls','.xlsx']:
+                print("Reading as excel")
+                df = pd.read_excel(filePath)
+            else:
+                print("Reading as csv")
+                df = pd.read_csv(filePath,'\t')
+            # Rename first column as 'nm' for wavelengths
+            df.rename(columns={df.columns[0]:'nm'}, inplace=True)
+            # Bug fix for duplicate 2nd column name in some Olis-produced files
+            if df.columns[1] == '0.1':
+                df.rename(columns={df.columns[1]:'0'}, inplace=True)
+         
+            dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
+            #print('Read '+str(dataCols)+' during read_file()')
+            return df, dataCols 
+        else:
+            print("Error: File must be of type:",allowedFiles)
+
+    def read_exp_file(self, dataPath):
+        """
+        Deprecated based on use of GUI, but preserved for command line use of 
+        alchClass.
+        """
+        self.dataPath = dataPath
+        if self.exp:
+            warn("Exp data already exists")
+        try:
+            self.exp, self.dataCols = self.read_file(self.dataPath)
+            self.exp = self.clean_data(self.exp)    
+            self.identify() # Change names to reflect new data
+            print('Read in '+self.dataPath)
+        except:
+                print("Error in reading files, aborting!")
+        
+    def read_ref_file(self, refPath):
+        """
+        Deprecated based on use of GUI, but preserved for command line use of 
+        alchClass.
+        """
+        self.refPath = refPath
+        print("Refpath is",self.refPath)
+        self.ref, self.species = self.read_file(self.refPath)
+        self.ref = self.clean_data(self.ref)
+                
    #%% Result class
 class Result():
     """
@@ -155,6 +191,7 @@ class Result():
         """
         Run the deconvolution algorithm given a certain set of data and 
         reference spectra. Called automaticaly on object creation.
+        TODO: Make results text callable externally
         """
         if self.mode=='S':
             # In simple case, rename single data column to 'data'
@@ -208,7 +245,8 @@ class Result():
         return fig
 
 #%% Execute code
-if __name__=='__main__':
+#if __name__=='__main__':
+if False:
     from alchClass import Alch # Prevent object from belonging to __main__
     fname = 'output/A.alch'
     A = Alch(dataPath='data/test.xls',refPath='refspec.dat')

@@ -6,27 +6,38 @@ Created on Mon Jun 18 09:11:28 2018
 '''
 # Standard imports
 import tkinter as T
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 from warnings import warn
+import pandas as pd
+import os
 # Custom imports
-from themes import * # For dict solarized
+#from themes import * # For dict solarized
 import alchClass
 
 global versionNumber
 versionNumber = '1.5.0'
 global selectedTheme
+global verbose
+verbose = True
+#def set_theme(frame, mode):
+#    if mode=='light':
+#        frame.tk_setPalette(background=solarized['lightbg1'], foreground=solarized['lighttext1'],
+#               activeBackground=solarized['lightbg2'], activeForeground=solarized['lighttext2'])
+#        selectedTheme = 'light'
+#    elif mode == 'dark':
+#        frame.tk_setPalette(background=solarized['darkbg1'], foreground=solarized['darktext1'],
+#               activeBackground=solarized['darkbg2'], activeForeground=solarized['darktext2'])
+#        selectedTheme = 'dark'
+#    else:
+#        pass
 
-
-def set_theme(frame, mode):
-    if mode=='light':
-        frame.tk_setPalette(background=solarized['lightbg1'], foreground=solarized['lighttext1'],
-               activeBackground=solarized['lightbg2'], activeForeground=solarized['lighttext2'])
-        selectedTheme = 'light'
-    elif mode == 'dark':
-        frame.tk_setPalette(background=solarized['darkbg1'], foreground=solarized['darktext1'],
-               activeBackground=solarized['darkbg2'], activeForeground=solarized['darktext2'])
-        selectedTheme = 'dark'
+def Vprint(*msg):
+    """
+    Print a string iff the verbose setting is True.
+    """
+    if verbose:
+        print(*msg)
     else:
         pass
 
@@ -153,63 +164,69 @@ class A_main:
   
 #%% LEFT FRAME - MAIN CONFIG PANEL
 class A_L_frame:
+    """
+    Panel in main window for controlling file loading and other operations
+    """
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
         self.frame = T.Frame(self.master) # This frame, where widgets will live
-        self.fileWindow = a_load_file_dialog(self) # Initialize but do not open
-        self.refWindow = a_load_file_dialog(self) # Initialize but do not open
-
-        self.Alch = alchClass.Alch() # Initialize an Alch instance
-
+        
+        # Initialize, but do not open, browse windows
+        self.dataWindow = A_LoadWindow(self,colType='exp') 
+        self.refWindow = A_LoadWindow(self,colType='ref') 
+        
+        # Initialize an Alch instance
+        self.Alch = alchClass.Alch() 
+        
+        # Make data browse buttons
         self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
         self.str_dataLoaded = T.StringVar(self.frame)
         self.lab_dataLoaded = T.Label(self.frame, textvariable=self.str_dataLoaded, width=20)
-        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.get_data)  
-        
-        # TODO: Need a way of determining whether we're getting exp or ref data
+        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)  
+        # Reference browse button
         self.str_refLoaded = T.StringVar(self.frame)
         self.lab_refLoaded = T.Label(self.frame, textvariable=self.str_refLoaded, width=20)
-        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.get_ref)  
-
+        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)  
+        # Analyze button!
+        self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)  
+        
+        # Finish init and arrange widget
         self.status_update()
         self.arrange()
-
-    def get_data(self):
-        # Pop up window and allow for file loading
-        self.fileWindow.Focus() 
-        # Assign local variable to whatever ended up in the file browse window
-        # TODO: Figure out where to save this
-        # TODO: Save actual columns to the Alch, not just the file path
-        filePath = self.fileWindow.filePath.get()
-        #self.status_update() # moved to Save()
-         
-    def get_ref(self):
-        # Pop up window and allow for file loading
-        self.refWindow.Focus() 
-        # Assign local variable to whatever ended up in the file browse window
-        # TODO: Figure out where to save this
-        # TODO: Save actual columns to the Alch, not just the file path
-        refPath = self.refWindow.filePath.get()
-        #self.status_update() # moved to Save()
-
     
+    def analyze(self):
+        # Check to see if we're ready
+        self.status_update()
+        if not self.str_dataLoaded.get():
+            warn("Don't have data files loaded")
+            return
+        elif not self.str_refLoaded.get():
+            warn("Don't have reference files loaded")
+            return
+        else:
+            # If it all looks good, tell Alch to get to make a new result
+            Vprint('Calling for a result to be generated')
+            self.Alch.generate_result()
+            
     def status_update(self):
-        print('Updating status')
+        """
+        Check if the Alch object has loaded data yet
+        """
+        Vprint('Updating status')
         # Check if data file has been locked in
-        if self.fileWindow.filePath.get():
+        if self.Alch.dataPath.get():
             self.str_dataLoaded.set('Data file loaded')
             self.lab_dataLoaded.config(bg='green')
         else:
             self.str_dataLoaded.set('Data not loaded')
             self.lab_dataLoaded.config(bg='red')
         # Check for reference
-        if self.fileWindow.refPath.get():
+        if self.Alch.refPath.get():
             self.str_refLoaded.set('Reference file loaded')
             self.lab_refLoaded.config(bg='green')
         else:
             self.str_refLoaded.set('Reference not loaded')
             self.lab_refLoaded.config(bg='red')
-        #self.lab_dataLoaded.update()
     
     def pack(self,*args,**kwargs):
         # To be called by master window
@@ -223,6 +240,8 @@ class A_L_frame:
         
         self.lab_refLoaded.pack(side=T.BOTTOM,anchor=T.W)
         self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
+        
+        self.but_analyze.pack(side=T.BOTTOM,anchor=T.W)
 
 #%% RIGHT FRAME - LOGO, RESULTS
 class A_R_frame:
@@ -250,23 +269,46 @@ class A_R_frame:
         #self.logo.pack(side=T.TOP)
 
 #%% NEW WINDOW FOR LOADING DATA
-class a_load_file_dialog:
-    def __init__(self,master):
+class A_LoadWindow:
+    """
+    An object that manages the loading of a file, either of experimental or 
+    reference data. 
+    Methods:
+        __init__(): Initialize the object, but doesn't create a window
+        Open(): Create the window
+        Browse(): Call the file open dialog to read a file
+        Cancel(): Reset to previous (temp) data and close
+        Reset(): Clears the temp data
+        Save(): Convert temp data to saved data 
+        List(): Refresh items in listbox
+        Focus(): If window exists, focus it, otherwise call Open()
+        Frames(): Create frames for filling with widgets
+        Arrange(): Pack frames and widgets into the window
+    """
+    def __init__(self,master,colType):
         # Initialize bare minimum, wait for Open() to be called to do the rest
         self.master = master
+        self.colType = colType # 'exp' or 'ref'
         self.filePath = T.StringVar(value='')
-        self.refPath = T.StringVar(value='')
-        self.tempPath = T.StringVar() # Goes into filePath when using Save()
+        self.oldPath = T.StringVar(value='')
         self.windowOpen = None # Object starts without a window
+
+        # Establish old path if applicable        
+        if colType=='exp':
+            if self.master.Alch.expPath:
+                self.oldPath = self.master.Alch.expPath
+        elif colType=='ref':
+            if self.master.Alch.refPath:
+                self.oldPath = self.master.Alch.refPath
 
     def Open(self):
         # The rest of the initialization procedure, opening the window
         self.window = T.Toplevel(self.master.master) # All the way up to root
         self.window.geometry('300x300')
-        self.make_frames() # Gives topFrame, midFrame, botFrame
+        self.Frames() # Gives topFrame, midFrame, botFrame
 
         self.topInfo = T.Label(self.topFrame, text='Upload your data file here')
-        self.ent_file = T.Entry(self.topFrame, textvariable=self.tempPath)
+        self.ent_file = T.Entry(self.topFrame, textvariable=self.filePath)
         self.but_file = T.Button(self.topFrame, text='Browse',command=self.Browse)
 
         self.listItems = T.Listbox(self.midFrame,selectmode='multiple')
@@ -274,7 +316,7 @@ class a_load_file_dialog:
         self.but_reset = T.Button(self.botFrame, text='Reset', command=self.Reset)
         self.but_cancel = T.Button(self.botFrame, text='Cancel', command=self.Cancel)
         self.but_save = T.Button(self.botFrame, text='Save', command=self.Save)
-        self.arrange()
+        self.Arrange()
 
         # Set window status and close procedure
         self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
@@ -282,76 +324,125 @@ class a_load_file_dialog:
 
     def Browse(self):
         # Open file browse dialog
-        newPath = filedialog.askopenfilename(parent = self.window,filetypes=[('Data file','*.xls *.csv *.dat'),('All files','*.*')])
+        newPath = filedialog.askopenfilename(parent = self.window,filetypes=[('Data file','*.csv *.dat *.txt *.xls *.xlsx'),('All files','*.*')])
         if not newPath:
-            print('Nothing chosen, nothing saved')
+            Vprint('Nothing chosen, nothing saved')
             return None
+        
         # If we have a new file...
         try:
             ## Read in data file using existing Alch instance
-            self.master.Alch.load_exp(newPath)
             # TODO: What if we don't want to keep this one and cancel later? 
-            self.tempPath.set(newPath)
+            #self.master.Alch.load_exp(newPath)
+            self.filePath.set(newPath)
+            self.Read_Columns()
             self.ent_file.xview_moveto(1)
         except:
             warn('Error between Browse()-load_exp()')
-        print('Received '+str(len(self.master.Alch.dataCols))+' cols from Browse()')
+        Vprint('Received '+str(len(self.master.Alch.dataCols))+' cols from Browse()')
+        self.List()        
+
+    def Read_Columns(self):
+        """
+        Read in the data from a spreadsheet file. Assumes a header row, and 
+        the first column must contain the x-axis (wavelengths).
+        """
+        _, ext = os.path.splitext(self.filePath)
+        allowedFiles = ['.csv','.dat','.txt','.xls','.xlsx']
+            # Read in the file
+        Vprint("My extension is",ext)
+        if ext in allowedFiles:
+            if ext in ['.xls','.xlsx']:
+                Vprint("Reading as excel")
+                self.df = pd.read_excel(self.filePath)
+            else:
+                Vprint("Reading as plaintext (tab delim)")
+                self.df = pd.read_csv(self.filePath,'\t')
+
+            # Clean up the dataframe
+            # Rename first column as 'nm' for wavelengths
+            self.df.rename(columns={self.df.columns[0]:'nm'}, inplace=True)
+            # Bug fix for duplicate 2nd column name in some Olis-produced files
+            if self.df.columns[1] == '0.1':
+                self.df.rename(columns={self.df.columns[1]:'0'}, inplace=True)
+         
+            self.cols = list(self.df.drop('nm',axis=1)) # Data col names
+
+        else:
+            Vprint("Error: File must be of type:", allowedFiles)
+        
+    def List(self):
+        # Received columns, now populate listbox
         try:
             # Clear listbox if not empty
             if self.listItems.size() > 0:
-                print('Clearing listbox')
+                Vprint('Clearing listbox')
                 self.listItems.delete(0,T.END)
             # Repopulate with data col names from Alch
-            for l in self.master.Alch.dataCols:
+            for l in self.cols:
                 self.listItems.insert(T.END, l) # Grab all colnames
                 self.listItems.select_set(0, T.END) # Select all by default
         except:
             warn('Something went wrong populating column list')
-
+        
     def Cancel(self):
-        print('Cancelling ' + self.tempPath.get())
-        print('Revering back to ' + self.filePath.get())
+        Vprint('Cancelling ' + self.filePath.get())
+        Vprint('Revering back to ' + self.oldPath.get())
         # Discard our changes
-        self.tempPath.set(self.filePath.get())
+        #self.tempPath.set(self.filePath.get())
+        self.filePath.set(self.oldPath.get())
         # Hide window but preserve the object
         self.window.withdraw()
         #self.windowOpen = None
 
     def Reset(self):
         # Pretend this object never existed
-        print('Throwing it all away')
+        Vprint('Throwing it all away')
         self.filePath.set('')
-        self.tempPath.set('')
+        self.oldPath.set('')
         self.windowOpen = None
         self.master.status_update()
         self.window.destroy()
 
     def Save(self):
-        # Commit changes back to the master
-        # TODO: Need a way of determining whether we're getting exp or ref data
-        # Maybe return data, instead of modifying master?
-        print('Saving ' + self.tempPath.get())
-        self.filePath.set(self.tempPath.get())
-        self.master.status_update() 
-        self.window.withdraw()
-        return self.tempPath.get()
+        """
+        Commit changes back to the associated Alch object
+        TODO: Should any of this be moved to the Alch method?
+        """
+        # Get the desired columns from the listbox
+        selectedCols = [self.listItems.get(i) for i in self.listItems.curselection()]
+        selectedCols.insert(0,'nm') # Don't forget the 1st col!
+        Vprint('Saving', selectedCols, 'from', self.filePath.get())
+
+        # Save selected list cols to the Alch df
+        self.master.Alch.load_cols(self.df,self.colType,self.filePath)
+
+        # Update status of the master status window
+        self.master.status_update()
+
+        # Close window, our job is done
+        self.window.withdraw() 
 
     def Focus(self):
+        """
+        Open a single file browse window, or focus an already opened one.
+        """
         if self.windowOpen:
             # If we already have one open, raise it
             try:
                 self.window.deiconify()
-                print('Used deiconify()')
+                Vprint('Used deiconify()')
             except:
                 self.window.lift()    
-                print('Used lift()')
+                Vprint('Used lift()')
         else:
             # Else, create a new one
-            print('Making a new window!')
+            Vprint('Making a new window!')
             self.Open()
+        # Move cursor to the end
         self.ent_file.xview_moveto(1)
 
-    def make_frames(self):
+    def Frames(self):
         self.topFrame = T.Frame(self.window)
         self.midFrame = T.Frame(self.window)
         self.botFrame = T.Frame(self.window)
@@ -360,7 +451,7 @@ class a_load_file_dialog:
         self.midFrame.pack(side=T.TOP, fill=T.BOTH)
         self.botFrame.pack(side=T.BOTTOM, fill=T.X)
 
-    def arrange(self):
+    def Arrange(self):
         # Pack top frame
         self.topInfo.pack(side=T.TOP)
         self.ent_file.pack(side=T.LEFT,fill=T.X,expand=True)
@@ -372,9 +463,47 @@ class a_load_file_dialog:
         self.but_cancel.pack(side=T.RIGHT)
         self.but_save.pack(side=T.RIGHT)
 
-#%% Execute loop
-root = T.Tk()
+class A_ResultWindow:
+    """
+    An object that manages the loading of a file, either of experimental or 
+    reference data. 
+    Methods:
+        
+    """
+    def __init__(self,master):
+        self.master = master # Frame containing loadWindow, Alch, etc.
+        self.results = master.Alch.result_list # List of result objects
+        # List of results from that Alch (may be empty)
+    
+    def make_results(self):
+        # For each item in a single result
+        
+        pass
+    
+    # Method to select result from list and place that data into the GUI
+    # Frame containing list of numeric results
+    def addItem(self,item):
+        """
+        Accept an indivudal species and number combination and make a widget
+        """
+        # Generate label based on species
+        
+        # Add
+        pass
+        
+    # Method for producing wigdets to reside in this frame
+            # Widget containing data from the results
+            # Image
+            # Settings used
+            # Numeric data (percent composition)
+    
+    def arrange(self):
+        pass
+        # Place widgets into the window and pack()
 
-root.iconbitmap('lib/alch_flask_icon.ico')
-app = A_main(root)
-root.mainloop()
+#%% Execute loop
+#root = T.Tk()
+
+#root.iconbitmap('lib/alch_flask_icon.ico')
+#app = A_main(root)
+#root.mainloop()
