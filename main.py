@@ -3,6 +3,8 @@
 Created on Mon Jun 18 09:11:28 2018
 
 @author: hickey.221
+
+TODO: Add icon to TopLevel windows
 '''
 # Standard imports
 import tkinter as T
@@ -90,7 +92,7 @@ class A_main:
 
     def about_Box(self):
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
-    
+
 
 #%% CUSTOM MENU - NOT IN USE
 #class A_Menu:
@@ -99,34 +101,34 @@ class A_main:
 #        self.frame = T.Frame(self.master)
 #        self.m_File = T.Label(self.frame, text='File')
 #        self.m_View = T.Label(self.frame, text='View')
-#        
+#
 #        # Grabbable part in center of bar
 #        self.m_grip = T.Label(self.frame, bg='black')
-#        
+#
 #        self.m_Min = T.Button(self.frame, text='__',command=self.Min)
 #        self.m_Close = T.Button(self.frame, text='X',command=self.Close)
-#        
+#
 #        self.arrange()
 #        # Click-n-drag stuff
 #        self.m_grip.bind("<ButtonPress-1>", self.StartMove)
 #        self.m_grip.bind("<ButtonRelease-1>", self.StopMove)
 #        self.m_grip.bind("<B1-Motion>", self.OnMotion)
-#        
+#
 #        self.m_grip.bind("<Map>",self.frame_mapped)
-#        
+#
 #    def Min(self):
 #        #self.master.iconify()
 #        self.master.update_idletasks()
 #        self.master.overrideredirect(False)
 #        #root.state('withdrawn')
 #        self.master.state('iconic')
-#        
+#
 #    def Max(self):
 #        self.master.destroy()
-#        
+#
 #    def Close(self):
 #        self.master.destroy()
-#        
+#
 #    def StartMove(self, event):
 #        self.x = event.x
 #        self.y = event.y
@@ -141,27 +143,27 @@ class A_main:
 #        x = self.master.winfo_x() + deltax
 #        y = self.master.winfo_y() + deltay
 #        self.master.geometry("+%s+%s" % (x, y))
-#        
+#
 #    def frame_mapped(self,e):
 #        print(self,e)
 #        self.master.update_idletasks()
 #        self.master.overrideredirect(True)
 #        self.master.state('normal')
-#        
+#
 #    def arrange(self):
 #        # Pack everything together
 #        self.m_File.pack(side=T.LEFT)
 #        self.m_View.pack(side=T.LEFT)
-#        
+#
 #        self.m_grip.pack(side=T.LEFT, expand=1, fill=T.BOTH)
-#        
+#
 #        self.m_Close.pack(side=T.RIGHT)
 #        self.m_Min.pack(side=T.RIGHT)
 #
 #    def pack(self,*args,**kwargs):
 #        # To be called by master window
 #        self.frame.pack(*args,**kwargs)
-  
+
 #%% LEFT FRAME - MAIN CONFIG PANEL
 class A_L_frame:
     """
@@ -170,30 +172,31 @@ class A_L_frame:
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
         self.frame = T.Frame(self.master) # This frame, where widgets will live
-        
+
+        # Begin by initializing an Alch instance
+        self.Alch = alchClass.Alch()
+
         # Initialize, but do not open, browse windows
-        self.dataWindow = A_LoadWindow(self,colType='exp') 
-        self.refWindow = A_LoadWindow(self,colType='ref') 
-        
-        # Initialize an Alch instance
-        self.Alch = alchClass.Alch() 
-        
+        self.dataWindow = A_LoadWindow(self,colType='exp')
+        self.refWindow = A_LoadWindow(self,colType='ref')
+
+
         # Make data browse buttons
         self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
         self.str_dataLoaded = T.StringVar(self.frame)
         self.lab_dataLoaded = T.Label(self.frame, textvariable=self.str_dataLoaded, width=20)
-        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)  
+        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)
         # Reference browse button
         self.str_refLoaded = T.StringVar(self.frame)
         self.lab_refLoaded = T.Label(self.frame, textvariable=self.str_refLoaded, width=20)
-        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)  
+        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.refWindow.Focus)
         # Analyze button!
-        self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)  
-        
+        self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)
+
         # Finish init and arrange widget
         self.status_update()
         self.arrange()
-    
+
     def analyze(self):
         # Check to see if we're ready
         self.status_update()
@@ -207,27 +210,27 @@ class A_L_frame:
             # If it all looks good, tell Alch to get to make a new result
             Vprint('Calling for a result to be generated')
             self.Alch.generate_result()
-            
+
     def status_update(self):
         """
         Check if the Alch object has loaded data yet
         """
         Vprint('Updating status')
         # Check if data file has been locked in
-        if self.Alch.dataPath.get():
+        if self.Alch.expPath:
             self.str_dataLoaded.set('Data file loaded')
             self.lab_dataLoaded.config(bg='green')
         else:
             self.str_dataLoaded.set('Data not loaded')
             self.lab_dataLoaded.config(bg='red')
         # Check for reference
-        if self.Alch.refPath.get():
+        if self.Alch.refPath:
             self.str_refLoaded.set('Reference file loaded')
             self.lab_refLoaded.config(bg='green')
         else:
             self.str_refLoaded.set('Reference not loaded')
             self.lab_refLoaded.config(bg='red')
-    
+
     def pack(self,*args,**kwargs):
         # To be called by master window
         self.frame.pack(*args,**kwargs)
@@ -237,10 +240,10 @@ class A_L_frame:
         self.lab_selectFile.pack(side=T.TOP)
         self.lab_dataLoaded.pack(side=T.LEFT, anchor=T.W)
         self.but_selectFile.pack(side=T.LEFT)
-        
+
         self.lab_refLoaded.pack(side=T.BOTTOM,anchor=T.W)
         self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
-        
+
         self.but_analyze.pack(side=T.BOTTOM,anchor=T.W)
 
 #%% RIGHT FRAME - LOGO, RESULTS
@@ -271,15 +274,15 @@ class A_R_frame:
 #%% NEW WINDOW FOR LOADING DATA
 class A_LoadWindow:
     """
-    An object that manages the loading of a file, either of experimental or 
-    reference data. 
+    An object that manages the loading of a file, either of experimental or
+    reference data.
     Methods:
         __init__(): Initialize the object, but doesn't create a window
         Open(): Create the window
         Browse(): Call the file open dialog to read a file
         Cancel(): Reset to previous (temp) data and close
         Reset(): Clears the temp data
-        Save(): Convert temp data to saved data 
+        Save(): Convert temp data to saved data
         List(): Refresh items in listbox
         Focus(): If window exists, focus it, otherwise call Open()
         Frames(): Create frames for filling with widgets
@@ -293,7 +296,7 @@ class A_LoadWindow:
         self.oldPath = T.StringVar(value='')
         self.windowOpen = None # Object starts without a window
 
-        # Establish old path if applicable        
+        # Establish old path if applicable
         if colType=='exp':
             if self.master.Alch.expPath:
                 self.oldPath = self.master.Alch.expPath
@@ -328,49 +331,58 @@ class A_LoadWindow:
         if not newPath:
             Vprint('Nothing chosen, nothing saved')
             return None
-        
+        else:
+            Vprint("From dialog got",newPath)
         # If we have a new file...
         try:
             ## Read in data file using existing Alch instance
-            # TODO: What if we don't want to keep this one and cancel later? 
+            # TODO: What if we don't want to keep this one and cancel later?
             #self.master.Alch.load_exp(newPath)
             self.filePath.set(newPath)
+            Vprint('Calling Read_Columns')
             self.Read_Columns()
+
             self.ent_file.xview_moveto(1)
         except:
             warn('Error between Browse()-load_exp()')
-        Vprint('Received '+str(len(self.master.Alch.dataCols))+' cols from Browse()')
-        self.List()        
+            self.Cancel()
+        #Vprint('Received '+str(len(self.master.Alch.exp))+' cols from Browse()')
+        self.List()
 
     def Read_Columns(self):
         """
-        Read in the data from a spreadsheet file. Assumes a header row, and 
+        Read in the data from a spreadsheet file. Assumes a header row, and
         the first column must contain the x-axis (wavelengths).
         """
-        _, ext = os.path.splitext(self.filePath)
+        Vprint('Check 1')
+        _, ext = os.path.splitext(self.filePath.get())
+        Vprint('Check 2')
         allowedFiles = ['.csv','.dat','.txt','.xls','.xlsx']
             # Read in the file
         Vprint("My extension is",ext)
         if ext in allowedFiles:
             if ext in ['.xls','.xlsx']:
                 Vprint("Reading as excel")
-                self.df = pd.read_excel(self.filePath)
+                self.df = pd.read_excel(self.filePath.get())
             else:
                 Vprint("Reading as plaintext (tab delim)")
-                self.df = pd.read_csv(self.filePath,'\t')
-
+                self.df = pd.read_csv(self.filePath.get(),'\t')
+            Vprint('Check 3')
             # Clean up the dataframe
             # Rename first column as 'nm' for wavelengths
             self.df.rename(columns={self.df.columns[0]:'nm'}, inplace=True)
             # Bug fix for duplicate 2nd column name in some Olis-produced files
             if self.df.columns[1] == '0.1':
                 self.df.rename(columns={self.df.columns[1]:'0'}, inplace=True)
-         
+
+            # Add stuff to the listBox
             self.cols = list(self.df.drop('nm',axis=1)) # Data col names
+            Vprint('Sending',self.cols,'to List()')
+            #self.List() # done in Browse()
 
         else:
             Vprint("Error: File must be of type:", allowedFiles)
-        
+
     def List(self):
         # Received columns, now populate listbox
         try:
@@ -384,7 +396,7 @@ class A_LoadWindow:
                 self.listItems.select_set(0, T.END) # Select all by default
         except:
             warn('Something went wrong populating column list')
-        
+
     def Cancel(self):
         Vprint('Cancelling ' + self.filePath.get())
         Vprint('Revering back to ' + self.oldPath.get())
@@ -415,13 +427,13 @@ class A_LoadWindow:
         Vprint('Saving', selectedCols, 'from', self.filePath.get())
 
         # Save selected list cols to the Alch df
-        self.master.Alch.load_cols(self.df,self.colType,self.filePath)
+        self.master.Alch.load_cols(self.df,self.colType,self.filePath.get())
 
         # Update status of the master status window
         self.master.status_update()
 
         # Close window, our job is done
-        self.window.withdraw() 
+        self.window.withdraw()
 
     def Focus(self):
         """
@@ -433,7 +445,7 @@ class A_LoadWindow:
                 self.window.deiconify()
                 Vprint('Used deiconify()')
             except:
-                self.window.lift()    
+                self.window.lift()
                 Vprint('Used lift()')
         else:
             # Else, create a new one
@@ -462,24 +474,24 @@ class A_LoadWindow:
         self.but_reset.pack(side=T.RIGHT)
         self.but_cancel.pack(side=T.RIGHT)
         self.but_save.pack(side=T.RIGHT)
-
+#%%
 class A_ResultWindow:
     """
-    An object that manages the loading of a file, either of experimental or 
-    reference data. 
+    An object that manages the loading of a file, either of experimental or
+    reference data.
     Methods:
-        
+
     """
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.results = master.Alch.result_list # List of result objects
         # List of results from that Alch (may be empty)
-    
+
     def make_results(self):
         # For each item in a single result
-        
+
         pass
-    
+
     # Method to select result from list and place that data into the GUI
     # Frame containing list of numeric results
     def addItem(self,item):
@@ -487,23 +499,23 @@ class A_ResultWindow:
         Accept an indivudal species and number combination and make a widget
         """
         # Generate label based on species
-        
+
         # Add
         pass
-        
+
     # Method for producing wigdets to reside in this frame
             # Widget containing data from the results
             # Image
             # Settings used
             # Numeric data (percent composition)
-    
+
     def arrange(self):
         pass
         # Place widgets into the window and pack()
 
 #%% Execute loop
-#root = T.Tk()
+root = T.Tk()
 
-#root.iconbitmap('lib/alch_flask_icon.ico')
-#app = A_main(root)
-#root.mainloop()
+root.iconbitmap('lib/alch_flask_icon.ico')
+app = A_main(root)
+root.mainloop()

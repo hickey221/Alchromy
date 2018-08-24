@@ -6,7 +6,7 @@ Created on Tue Jun 12 17:41:47 2018
 
 AlchClass.py
 
-Describes the Alch object class. An Alch instance contains a set of data, 
+Describes the Alch object class. An Alch instance contains a set of data,
 references, and results objects from an Alchromy analysis.
 
 TODO: Should read_file be here? Why not move that to a separate section and
@@ -36,7 +36,7 @@ class Alch():
     """
     def __init__(self):
         # Initialize parameters
-        self.dataPath = None
+        self.expPath = None
         self.refPath = None
         self.exp = None
         self.ref = None
@@ -47,7 +47,7 @@ class Alch():
         #self.exp, self.dataCols = self.read_file()
         self.settings = {'Normalize':False,
                     'Cutoff':(450,700)}
-        
+
     def identify(self,dataPath):
         """
         Establish information about file name and location
@@ -57,11 +57,11 @@ class Alch():
         self.simpleName, self.ext = os.path.splitext(self.fullName)
         #if name:
             #self.nickName = name
-            
+
     def generate_result(self):
         """
         Given settings about a run, generate a result object
-        
+
         """
         # Deprec. because we should only have good refs by now
         #workingRef = self.ref.drop(ignored, axis=1)
@@ -78,20 +78,20 @@ class Alch():
         if colType=='exp':
             self.exp = self.clean_data(df)
             self.dataCols = list(df.drop('nm',axis=1))
-            self.dataPath = filePath
-            self.identify(self.dataPath)
+            self.expPath = filePath
+            self.identify(self.expPath)
         elif colType=='ref':
             self.ref = self.clean_data(df)
             self.species = list(df.drop('nm',axis=1))
             self.refPath = filePath
         else:
             warn('Unknown colType')
-             
+
     def save_pdf(self,fname, fig):
         doc = PdfPages(fname)
         fig.savefig(doc, format='pdf')
         doc.close()
-        
+
     def plot_results(self):
         for r in self.result_list:
             fig = r.export()
@@ -102,12 +102,12 @@ class Alch():
             #ax_list = fig.axes
             #print(ax_list)
             self.save_pdf('output/'+str(r.ts)+'.pdf',fig)
-            
+
     def list_results(self):
         print("Results list:")
         for r in self.result_list:
             print(r.ts)
-    
+
     def clean_data(self,df):
         """
         Trims all data to be within the limits, and removes data points that
@@ -117,10 +117,10 @@ class Alch():
         df = df[df['nm'] <= self.settings['Cutoff'][1]]
         df = df[df['nm'] % 2 == 0]
         return df
-    
+
     def read_file(self,filePath):
         """
-        Deprecated based on use of GUI, but preserved for command line use of 
+        Deprecated based on use of GUI, but preserved for command line use of
         alchClass.
         """
         _, ext = os.path.splitext(filePath)
@@ -139,16 +139,16 @@ class Alch():
             # Bug fix for duplicate 2nd column name in some Olis-produced files
             if df.columns[1] == '0.1':
                 df.rename(columns={df.columns[1]:'0'}, inplace=True)
-         
+
             dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
             #print('Read '+str(dataCols)+' during read_file()')
-            return df, dataCols 
+            return df, dataCols
         else:
             print("Error: File must be of type:",allowedFiles)
 
     def read_exp_file(self, dataPath):
         """
-        Deprecated based on use of GUI, but preserved for command line use of 
+        Deprecated based on use of GUI, but preserved for command line use of
         alchClass.
         """
         self.dataPath = dataPath
@@ -156,22 +156,22 @@ class Alch():
             warn("Exp data already exists")
         try:
             self.exp, self.dataCols = self.read_file(self.dataPath)
-            self.exp = self.clean_data(self.exp)    
+            self.exp = self.clean_data(self.exp)
             self.identify() # Change names to reflect new data
             print('Read in '+self.dataPath)
         except:
                 print("Error in reading files, aborting!")
-        
+
     def read_ref_file(self, refPath):
         """
-        Deprecated based on use of GUI, but preserved for command line use of 
+        Deprecated based on use of GUI, but preserved for command line use of
         alchClass.
         """
         self.refPath = refPath
         print("Refpath is",self.refPath)
         self.ref, self.species = self.read_file(self.refPath)
         self.ref = self.clean_data(self.ref)
-                
+
    #%% Result class
 class Result():
     """
@@ -186,10 +186,10 @@ class Result():
         self.expData = self.owner.exp # Grab data from owner
         self.run_deconv()
         self.do_stats()
-        
+
     def run_deconv(self):
         """
-        Run the deconvolution algorithm given a certain set of data and 
+        Run the deconvolution algorithm given a certain set of data and
         reference spectra. Called automaticaly on object creation.
         TODO: Make results text callable externally
         """
@@ -202,10 +202,10 @@ class Result():
 
         # Make a call to deconvolution algo, store the results
         self.coeffs, self.perr = deconv.doFitting(self.refData,self.expData['data'])
-        
+
         # Get fit data column now that deconvolution is complete
         self.fit = deconv.func(self.refData.T, *self.coeffs)
-        
+
     def do_stats(self):
         """
         Get some summary data about the results.
@@ -213,7 +213,7 @@ class Result():
         ss_r = np.sum((self.expData['data'] - self.fit)**2)
         ss_t = np.sum((self.expData['data'] - np.mean(self.expData['data']))**2)
         self.r2 = 1-(ss_r/ss_t)
-    
+
     def export(self):
         """
         Method for saving spreadsheet and plot data from an individual .alch
@@ -232,7 +232,7 @@ class Result():
             ax.fill_between(self.expData['nm'], _min, _max)
         ax.plot(self.expData['nm'], self.expData['data'], 'b.-', label='data')
         ax.plot(self.expData['nm'], self.fit, 'r-', label='fit')
-    
+
         # Print fit data and coefficients
         tbox = r"$R^2$ fit: {:.5f}".format(self.r2)
         anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
@@ -249,19 +249,18 @@ class Result():
 if False:
     from alchClass import Alch # Prevent object from belonging to __main__
     fname = 'output/A.alch'
-    A = Alch(dataPath='data/test.xls',refPath='refspec.dat')
-    
+    A = Alch(expPath='data/test.xls',refPath='refspec.dat')
+
     A.load_exp()
-    
+
     A.load_ref()
-    
+
     A.generate_result()
     A.generate_result()
-    
+
     A.plot_results()
     with open(fname, 'wb') as pickle_file:
         pickle.dump(A, pickle_file)
-    
+
     #with open(fname, 'rb') as pickle_file:
         #B = pickle.load(pickle_file)
-    
