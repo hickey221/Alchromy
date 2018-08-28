@@ -13,6 +13,7 @@ from PIL import Image, ImageTk
 from warnings import warn
 import pandas as pd
 import os
+from numpy import arange, sin, pi #TEMP for embedded plot test
 # For result GUI
 import matplotlib
 matplotlib.use('TkAgg')
@@ -114,7 +115,7 @@ class A_L_frame:
         # Initialize, but do not open, browse windows
         self.dataWindow = A_LoadWindow(self,colType='exp')
         self.refWindow = A_LoadWindow(self,colType='ref')
-
+        self.resultWindow = A_ResultWindow(self)
 
         # Make data browse buttons
         self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
@@ -127,11 +128,25 @@ class A_L_frame:
         self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.refWindow.Focus)
         # Analyze button!
         self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)
-
+        # Results test button
+        self.but_results = T.Button(self.frame, text='Result window', command=self.resultWindow.Focus)
+        self.but_plot = T.Button(self.frame, text='Plot test',command=self.resultWindow.plot_frame)
+        self.preload_ref()
         # Finish init and arrange widget
         self.status_update()
         self.arrange()
-
+    
+    def preload_ref(self):
+        """
+        Load in a hardcoded default reference path
+        """
+        self.refWindow.Focus()
+        self.refWindow.filePath.set('ref/default.dat')
+        self.refWindow.oldPath.set(self.refWindow.filePath.get())
+        self.refWindow.Read_Columns()
+        self.refWindow.List()
+        self.refWindow.Save()
+    
     def analyze(self):
         # Check to see if we're ready
         self.status_update()
@@ -145,7 +160,8 @@ class A_L_frame:
             # If it all looks good, tell Alch to get to make a new result
             Vprint('Calling for a result to be generated')
             self.Alch.generate_result()
-            self.Alch.plot_results()
+            
+            #self.Alch.plot_results()
 
     def status_update(self):
         """
@@ -181,19 +197,23 @@ class A_L_frame:
         self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
 
         self.but_analyze.pack(side=T.BOTTOM,anchor=T.W)
+        self.but_results.pack()
+        self.but_plot .pack()
 
 #%% RIGHT FRAME - LOGO, RESULTS
 class A_R_frame:
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
         self.frame = T.Frame(self.master) # This frame, where widgets will live
-        #self.make_logo()
+        self.make_logo()
+        self.title = T.Label(self.frame,text='Alchromy v. '+str(versionNumber))
         self.arrange()
 
     def make_logo(self):
         # Logo in top right
-        _imagefile = Image.open('lib/logo_378x100.png')
-        _imagefile = _imagefile.resize((189, 50), Image.ANTIALIAS)
+        #_imagefile = Image.open('lib/logo_378x100.png')
+        _imagefile = Image.open('lib/alch_flask_icon.gif')
+        _imagefile = _imagefile.resize((90, 90))
         _photo = ImageTk.PhotoImage(_imagefile)
         self.logo = T.Label(self.frame, image=_photo)
         self.logo.image = _photo # keep a reference!
@@ -203,9 +223,9 @@ class A_R_frame:
         self.frame.pack(*args,**kwargs)
 
     def arrange(self):
-        pass
         # Pack everything together
-        #self.logo.pack(side=T.TOP)
+        self.logo.pack(side=T.TOP)
+        self.title.pack(side=T.TOP)
 
 #%% NEW WINDOW FOR LOADING DATA
 class A_LoadWindow:
@@ -430,28 +450,108 @@ class A_ResultWindow:
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.master # All the way up to root
-        self.results = master.Alch.result_list # List of result objects
+        self.windowOpen = None # Object starts without a window
         
+    def Open(self):
         # Open a window
-        self.window = T.Toplevel(self.root) 
+        self.window = T.Toplevel(self.root)
         self.window.geometry('300x300')
         self.window.iconbitmap('lib/alch_flask_icon.ico')
-        # List of results from that Alch (may be empty)
-        self.F = Figure(figsize=(5, 4), dpi=100)
 
-    def make_results(self):
-        # For each item in a single result
+        # Create some things that require a window
+        self.resultName = T.StringVar(self.window)
+        #self.F = Figure(figsize=(5, 4), dpi=100)
+        self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
+        self.windowOpen = True # Window officially exists now
+        
+    def Focus(self):
+        """
+        Open a single file browse window, or focus an already opened one.
+        """
+        if self.windowOpen:
+            # If we already have one open, raise it
+            try:
+                self.window.deiconify()
+                Vprint('Used deiconify()')
+            except:
+                self.window.lift()
+                Vprint('Used lift()')
+        else:
+            # Else, create a new one
+            Vprint('Making a new window!')
+            self.Open()
+        # Either way, update result list
+        self.refresh_results()
 
-        pass
+    def Cancel(self):
+        self.window.withdraw()
+        
+    def refresh_results(self):
+        self.results = self.master.Alch.result_list # List of result objects
+        # Result list dropdown items
+        self.resultChoices = ['Choose a result']
+        self.resultName.set('Choose a result')
+        for r in self.results:
+            # Get a string of the epoch timestamp of each result
+            self.resultChoices.append(str(r.ts.timestamp()))
+        self.resultMenu = T.OptionMenu(self.window,self.resultName,*self.resultChoices, command=self.read_result)
+        self.dummyText = T.StringVar(self.window,value='none')
+        self.dummyLabel = T.Label(self.window,textvariable=self.dummyText)
+        self.Arrange()
+        
+    def read_result(self,*args):
+        """
+        Get data about the chosen result
+        """
+        Vprint('Looking inside resultChoices menu')
+        theChoice = self.resultName.get()
+        for i in self.resultChoices:
+            print(i)
+        if theChoice=='Choose a result':
+            # Break if nothing selected yet
+            Vprint('Default option selected, aborting read_result')
+            return
+        resultLoc = self.resultChoices.index(theChoice)-1
+        result = self.results[resultLoc]
+        # Change the display text shown
+        #self.dummyText.set(str(result.ts))
+        self.dummyText.set(result.ts.strftime("%c"))
 
-    # Method to select result from list and place that data into the GUI
-    # Frame containing list of numeric results
+    def plot_frame(self):
+        """
+        The frame which contains a matplotlib canvas and figure
+        """
+        root = self.master.master
+        
+        f = Figure(figsize=(5, 4), dpi=100)
+        a = f.add_subplot(111)
+        t = arange(0.0, 3.0, 0.01)
+        s = sin(2*pi*t)
+        a.plot(t, s)
+        canvas = FigureCanvasTkAgg(f, master=root)
+        canvas.show()
+        canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
+        
+        toolbar = NavigationToolbar2TkAgg(canvas, root)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
+        def _quit():
+            root.quit()
+            root.destroy() 
+        def on_key_event(event):
+            print('you pressed %s' % event.key)
+            key_press_handler(event, canvas, toolbar)
+        canvas.mpl_connect('key_press_event', on_key_event)
+
+        button = T.Button(master=root, text='Quit', command=_quit)
+        button.pack(side=T.BOTTOM) 
+        
+        
     def addItem(self,item):
         """
         Accept an indivudal species and number combination and make a widget
         """
         # Generate label based on species
-
         # Add
         pass
 
@@ -461,8 +561,9 @@ class A_ResultWindow:
             # Settings used
             # Numeric data (percent composition)
 
-    def arrange(self):
-        pass
+    def Arrange(self):
+        self.resultMenu.pack()
+        self.dummyLabel.pack()
         # Place widgets into the window and pack()
 
 #%% Execute loop

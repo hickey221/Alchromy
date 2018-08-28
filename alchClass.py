@@ -95,18 +95,18 @@ class Alch():
     def plot_results(self):
         for r in self.result_list:
             fig = r.export()
-            print("Exporting",r.ts)
+            print("Exporting",r.ts.timestamp())
             #fig.figure
             #fig.canvas.draw()
             fig.show()
             #ax_list = fig.axes
             #print(ax_list)
-            self.save_pdf('output/'+str(r.ts)+'.pdf',fig)
+            self.save_pdf('output/'+str(r.ts.timestamp())+'.pdf',fig)
 
     def list_results(self):
         print("Results list:")
         for r in self.result_list:
-            print(r.ts)
+            print(r.ts.timestamp())
 
     def clean_data(self,df):
         """
@@ -185,7 +185,7 @@ class Result:
     def __init__(self,owner,ref):
         self.owner = owner # The Alch instance we belong to
         self.mode = 'S' # (S)imple, (R)eplicate, (K)inetic
-        self.ts = datetime.datetime.now().timestamp() # Epoch timestamp
+        self.ts = datetime.datetime.now() # Current time (use .timestamp() for epoch)
         self.ref = ref # Reference data frame
         self.refData = self.owner.ref.drop('nm',axis=1) # Remove nm column
         self.expData = self.owner.exp # Grab data from owner
@@ -227,7 +227,7 @@ class Result:
         """
         # Set up figure
         fig, ax = plt.subplots(1,1)
-        ax.set_title(self.ts)
+        ax.set_title(self.ts.timestamp())
         ax.set_xlabel('Wavelength (nm)')
         ax.set_ylabel('Absorbance')
 
