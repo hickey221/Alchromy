@@ -8,7 +8,7 @@ TODO: Add icon to TopLevel windows
 '''
 # Standard imports
 import tkinter as T
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 from warnings import warn
 import pandas as pd
@@ -51,25 +51,34 @@ def Vprint(*msg):
         pass
 
 class A_main:
-    def __init__(self, master):
-        self.master = master # Expect this to be root
+    def __init__(self, root):
+        self.root = root # Expect this to be root
         # General main window stuff
-        self.master.title('Alchromy - Spectral Deconvolution')
-        self.master.geometry('500x300')
+        self.root.title('Alchromy - Spectral Deconvolution')
+        self.root.geometry('500x300')
         self.selectedTheme = T.StringVar(value='light')
         #self.theme_light()
-
+        self.nb = ttk.Notebook(self.root)
+        
+        # Moved Alch init to main
+        self.Alch = alchClass.Alch()
         # Menubar
         self.make_menu()
+        
+        # Not in use
         #self.custom_menu = A_Menu(self.master)
         #self.master.overrideredirect(True) # removes titlebar
 
         # Make frames and pack them
         #self.menuFrame = A_Menu(self.master)
-        self.leftFrame = A_L_frame(self.master)
-        self.rightFrame = A_R_frame(self.master)
-
-        self.arrange()
+        self.leftFrame = A_L_frame(self)
+        self.rightFrame = A_R_frame(self)
+        self.resultFrame = A_ResultWindow(self)
+        self.nb.add(self.leftFrame.frame, text='Input')
+        self.nb.add(self.resultFrame.frame, text='Results')
+        self.nb.pack(expand=1, fill='both')
+        
+        #self.arrange()
 
     def arrange(self):
         #self.custom_menu.pack(side=T.TOP,fill=T.X)
@@ -80,7 +89,7 @@ class A_main:
         root.protocol('WM_DELETE_WINDOW', root.destroy)
 
         # create a menu bar with an Exit command
-        self.menubar = T.Menu(self.master)
+        self.menubar = T.Menu(self.root)
         filemenu = T.Menu(self.menubar, tearoff=0, bd=0,relief=T.FLAT)
         filemenu['borderwidth'] = 0
         filemenu.add_command(label='Exit', command=root.destroy)
@@ -95,7 +104,7 @@ class A_main:
         aboutmenu.add_command(label='About',command=self.about_Box)
         self.menubar.add_cascade(label='Help', menu=aboutmenu)
         #self.menubar['highlightthickness']=0
-        self.master.config(menu=self.menubar)
+        self.root.config(menu=self.menubar)
 
     def about_Box(self):
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
@@ -107,16 +116,26 @@ class A_L_frame:
     """
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
-        self.frame = T.Frame(self.master) # This frame, where widgets will live
+        self.root = self.master.root
+        self.frame = ttk.Frame(self.master.nb) # This frame, where widgets will live
 
-        # Begin by initializing an Alch instance
-        self.Alch = alchClass.Alch()
+        # Now refer to other Alch
+        self.Alch = self.master.Alch
 
         # Initialize, but do not open, browse windows
         self.dataWindow = A_LoadWindow(self,colType='exp')
         self.refWindow = A_LoadWindow(self,colType='ref')
-        self.resultWindow = A_ResultWindow(self)
-
+        #self.resultWindow = A_ResultWindow(self)
+        
+        # Create all the stuff
+        self.make_widgets()
+        # Preload reference from file
+        self.preload_ref()
+        # Finish init and arrange widget
+        self.status_update()
+        self.arrange()
+        
+    def make_widgets(self):
         # Make data browse buttons
         self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
         self.str_dataLoaded = T.StringVar(self.frame)
@@ -129,20 +148,18 @@ class A_L_frame:
         # Analyze button!
         self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)
         # Results test button
-        self.but_results = T.Button(self.frame, text='Result window', command=self.resultWindow.Focus)
-        self.but_plot = T.Button(self.frame, text='Plot test',command=self.resultWindow.plot_frame)
-        self.preload_ref()
-        # Finish init and arrange widget
-        self.status_update()
-        self.arrange()
-    
+        #self.but_results = T.Button(self.frame, text='Result window', command=self.resultWindow.Focus)
+        #self.but_plot = T.Button(self.frame, text='Plot test',command=self.resultWindow.plot_frame)
+ 
     def preload_ref(self):
         """
         Load in a hardcoded default reference path
         """
+        ref = 'ref/default.dat'
+        Vprint("Loading default reference file",)
         self.refWindow.Focus()
-        self.refWindow.filePath.set('ref/default.dat')
-        self.refWindow.oldPath.set(self.refWindow.filePath.get())
+        self.refWindow.filePath.set(ref)
+        self.refWindow.oldPath.set(ref)
         self.refWindow.Read_Columns()
         self.refWindow.List()
         self.refWindow.Save()
@@ -197,15 +214,15 @@ class A_L_frame:
         self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
 
         self.but_analyze.pack(side=T.BOTTOM,anchor=T.W)
-        self.but_results.pack()
-        self.but_plot .pack()
+        #self.but_results.pack()
+        #self.but_plot.pack()
 
 #%% RIGHT FRAME - LOGO, RESULTS
 class A_R_frame:
     def __init__(self,master):
         self.master = master # Expect this to be main_gui instance
-        self.frame = T.Frame(self.master) # This frame, where widgets will live
-        self.make_logo()
+        self.frame = ttk.Frame(self.master.nb) # This frame, where widgets will live
+        #self.make_logo()
         self.title = T.Label(self.frame,text='Alchromy v. '+str(versionNumber))
         self.arrange()
 
@@ -224,7 +241,7 @@ class A_R_frame:
 
     def arrange(self):
         # Pack everything together
-        self.logo.pack(side=T.TOP)
+        #self.logo.pack(side=T.TOP)
         self.title.pack(side=T.TOP)
 
 #%% NEW WINDOW FOR LOADING DATA
@@ -246,8 +263,8 @@ class A_LoadWindow:
     """
     def __init__(self,master,colType):
         # Initialize bare minimum, wait for Open() to be called to do the rest
-        self.master = master
-        self.root = self.master.master
+        self.master = master # A_main
+        self.root = self.master.root
         self.colType = colType # 'exp' or 'ref'
         self.filePath = T.StringVar(value='')
         self.oldPath = T.StringVar(value='')
@@ -449,14 +466,15 @@ class A_ResultWindow:
     """
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
-        self.root = self.master.master # All the way up to root
+        self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
+        self.frame = ttk.Frame(self.master.nb)
         
     def Open(self):
         # Open a window
         self.window = T.Toplevel(self.root)
-        self.window.geometry('300x300')
-        self.window.iconbitmap('lib/alch_flask_icon.ico')
+        #self.window.geometry('300x300')
+        #self.window.iconbitmap('lib/alch_flask_icon.ico')
 
         # Create some things that require a window
         self.resultName = T.StringVar(self.window)
@@ -494,9 +512,9 @@ class A_ResultWindow:
         for r in self.results:
             # Get a string of the epoch timestamp of each result
             self.resultChoices.append(str(r.ts.timestamp()))
-        self.resultMenu = T.OptionMenu(self.window,self.resultName,*self.resultChoices, command=self.read_result)
-        self.dummyText = T.StringVar(self.window,value='none')
-        self.dummyLabel = T.Label(self.window,textvariable=self.dummyText)
+        self.resultMenu = T.OptionMenu(self.frame,self.resultName,*self.resultChoices, command=self.read_result)
+        self.dummyText = T.StringVar(self.frame,value='none')
+        self.dummyLabel = T.Label(self.frame,textvariable=self.dummyText)
         self.Arrange()
         
     def read_result(self,*args):
@@ -521,7 +539,7 @@ class A_ResultWindow:
         """
         The frame which contains a matplotlib canvas and figure
         """
-        root = self.master.master
+        root = self.master.root
         
         f = Figure(figsize=(5, 4), dpi=100)
         a = f.add_subplot(111)
