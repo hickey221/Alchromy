@@ -73,7 +73,7 @@ class A_main:
         #self.menuFrame = A_Menu(self.master)
         self.leftFrame = A_L_frame(self)
         self.rightFrame = A_R_frame(self)
-        self.resultFrame = A_ResultWindow(self)
+        self.resultFrame = A_ResultTab(self)
         self.nb.add(self.leftFrame.frame, text='Input')
         self.nb.add(self.resultFrame.frame, text='Results')
         self.nb.pack(expand=1, fill='both')
@@ -457,18 +457,28 @@ class A_LoadWindow:
         self.but_cancel.pack(side=T.RIGHT)
         self.but_save.pack(side=T.RIGHT)
 #%%
-class A_ResultWindow:
+class A_ResultTab:
     """
     An object that manages the loading of a file, either of experimental or
     reference data.
     Methods:
 
     """
+    def __init__(self, master):
+        self.LFrame = A_ResultFrame
+        self.RFrame = A_GUIFrame
+
+class A_GUIFrame:
+    def __init__(self,master):
+    
+class A_ResultFrame:
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
         self.frame = ttk.Frame(self.master.nb)
+        self.resultName = T.StringVar(self.frame)
+        self.refresh_results()
         
     def Open(self):
         # Open a window
@@ -477,9 +487,10 @@ class A_ResultWindow:
         #self.window.iconbitmap('lib/alch_flask_icon.ico')
 
         # Create some things that require a window
-        self.resultName = T.StringVar(self.window)
+        self.resultName = T.StringVar(self.frame)
         #self.F = Figure(figsize=(5, 4), dpi=100)
-        self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
+        # Removed since this is now a frame, not window
+        #self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
         self.windowOpen = True # Window officially exists now
         
     def Focus(self):
