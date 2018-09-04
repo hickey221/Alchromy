@@ -84,15 +84,20 @@ class A_main:
         #self.custom_menu.pack(side=T.TOP,fill=T.X)
         self.leftFrame.pack(side=T.LEFT, fill=T.BOTH)
         self.rightFrame.pack(side=T.RIGHT,fill=T.Y)
+        
+    def _quit(self):
+        Vprint('Quitting...')
+        self.root.quit()
+        self.root.destroy() 
 
     def make_menu(self):
-        root.protocol('WM_DELETE_WINDOW', root.destroy)
+        self.root.protocol('WM_DELETE_WINDOW', self._quit)
 
         # create a menu bar with an Exit command
         self.menubar = T.Menu(self.root)
         filemenu = T.Menu(self.menubar, tearoff=0, bd=0,relief=T.FLAT)
         filemenu['borderwidth'] = 0
-        filemenu.add_command(label='Exit', command=root.destroy)
+        filemenu.add_command(label='Exit', command=self._quit)
         self.menubar.add_cascade(label='File', menu=filemenu)
 
         viewmenu = T.Menu(self.menubar, tearoff=0, bd=0,relief=T.FLAT)
@@ -465,18 +470,72 @@ class A_ResultTab:
 
     """
     def __init__(self, master):
-        self.LFrame = A_ResultFrame
-        self.RFrame = A_GUIFrame
-
+        self.master = master
+        self.root = self.master.root
+        self.Alch = self.master.Alch
+        
+        self.frame = ttk.Frame(self.master.nb) # Main frame called by master
+        
+        #self.LFrame = A_ResultFrame(self)
+        self.RFrame = A_GUIFrame(self)
+        self.RFrame.pack(side=T.LEFT, fill=T.BOTH)
+        #self.LFrame.pack(side=T.LEFT, fill=T.BOTH)
+        #self.RFrame.pack(side=T.RIGHT, fill=T.BOTH)
+#%%
 class A_GUIFrame:
     def __init__(self,master):
-    
+        Vprint('Starting GUIFrame')
+        self.master = master
+        self.Alch = self.master.Alch
+        self.root = self.master.root
+
+        self.Update()
+        self.Arrange()
+
+    def Update(self):
+        """
+        Check to see if there is a new figure to plot
+        """
+        try:
+            l = len(self.Alch.result_list)
+        except:
+            l = 0    
+        if l==1:
+            # Temp solution if there's 1 result
+            self.f = self.Alch.result_list[0].export()
+        else:
+            self.f = Figure(figsize=(3, 2), dpi=100)
+            a = self.f.add_subplot(111)
+            t = arange(0.0, 3.0, 0.01)
+            s = sin(2*pi*t)
+            a.plot(t, s)
+
+    def Arrange(self):
+
+        canvas = FigureCanvasTkAgg(self.f, master=self.master.frame)
+        canvas.show()
+        canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
+        
+        toolbar = NavigationToolbar2TkAgg(canvas, self.master.frame)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
+
+        def on_key_event(event):
+            Vprint('you pressed %s' % event.key)
+            key_press_handler(event, canvas, toolbar)
+        canvas.mpl_connect('key_press_event', on_key_event)
+
+    def pack(self,*args,**kwargs):
+        # To be called by master window
+        pass
+        #self.frame.pack(*args,**kwargs)
+#%%
 class A_ResultFrame:
     def __init__(self,master):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
-        self.frame = ttk.Frame(self.master.nb)
+        self.frame = T.Frame(self.master)
         self.resultName = T.StringVar(self.frame)
         self.refresh_results()
         
@@ -594,6 +653,10 @@ class A_ResultFrame:
         self.resultMenu.pack()
         self.dummyLabel.pack()
         # Place widgets into the window and pack()
+        
+    def pack(self,*args,**kwargs):
+        # To be called by master window
+        self.frame.pack(*args,**kwargs)
 
 #%% Execute loop
 root = T.Tk()
