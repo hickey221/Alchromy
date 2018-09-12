@@ -245,7 +245,7 @@ class Result:
         anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
         ax.add_artist(anchored_text)
         ax.legend(loc=1)
-        plt.close(fig)
+        #plt.close(fig)
         #print(type(fig))
         #plt.show()
         return fig

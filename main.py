@@ -55,7 +55,8 @@ class A_main:
         self.root = root # Expect this to be root
         # General main window stuff
         self.root.title('Alchromy - Spectral Deconvolution')
-        self.root.geometry('500x300')
+        self.root.geometry('800x600')
+        self.root.iconbitmap('lib/alch_flask_icon.ico')
         self.selectedTheme = T.StringVar(value='light')
         #self.theme_light()
         self.nb = ttk.Notebook(self.root)
@@ -73,12 +74,25 @@ class A_main:
         #self.menuFrame = A_Menu(self.master)
         self.leftFrame = A_L_frame(self)
         self.rightFrame = A_R_frame(self)
-        self.resultFrame = A_ResultTab(self)
+        
+        try:
+            self.resultFrame = A_ResultTab(self)
+            Vprint('Able to create resultFrame')
+        except Exception as e:
+            Vprint('Not able to create resultFrame:',e)
+        
         self.nb.add(self.leftFrame.frame, text='Input')
         self.nb.add(self.resultFrame.frame, text='Results')
         self.nb.pack(expand=1, fill='both')
         
-        #self.arrange()
+    def Update(self):
+        Vprint('Updating Main')
+        try:
+            self.resultFrame.Update()
+        except:
+            Vprint('Could not find self.resultFrame')
+
+        #self.resultFrame.Update()
 
     def arrange(self):
         #self.custom_menu.pack(side=T.TOP,fill=T.X)
@@ -142,14 +156,18 @@ class A_L_frame:
         
     def make_widgets(self):
         # Make data browse buttons
-        self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
+        self.combo_data = T.Frame(self.frame)
+        #self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
         self.str_dataLoaded = T.StringVar(self.frame)
-        self.lab_dataLoaded = T.Label(self.frame, textvariable=self.str_dataLoaded, width=20)
-        self.but_selectFile = T.Button(self.frame, text='Load/Edit', command=self.dataWindow.Focus)
+        self.lab_dataLoaded = T.Label(self.combo_data, textvariable=self.str_dataLoaded, width=20)
+        self.but_selectFile = T.Button(self.combo_data, text='Load/Edit', command=self.dataWindow.Focus)
+
         # Reference browse button
+        self.combo_ref = T.Frame(self.frame)
         self.str_refLoaded = T.StringVar(self.frame)
-        self.lab_refLoaded = T.Label(self.frame, textvariable=self.str_refLoaded, width=20)
-        self.but_selectRef = T.Button(self.frame, text='Load/Edit', command=self.refWindow.Focus)
+        self.lab_refLoaded = T.Label(self.combo_ref, textvariable=self.str_refLoaded, width=20)
+        self.but_selectRef = T.Button(self.combo_ref, text='Load/Edit', command=self.refWindow.Focus)
+
         # Analyze button!
         self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)
         # Results test button
@@ -183,6 +201,7 @@ class A_L_frame:
             Vprint('Calling for a result to be generated')
             self.Alch.generate_result()
             
+            
             #self.Alch.plot_results()
 
     def status_update(self):
@@ -204,6 +223,7 @@ class A_L_frame:
         else:
             self.str_refLoaded.set('Reference not loaded')
             self.lab_refLoaded.config(bg='red')
+        self.master.Update()
 
     def pack(self,*args,**kwargs):
         # To be called by master window
@@ -211,14 +231,16 @@ class A_L_frame:
 
     def arrange(self):
         # Pack everything together
-        self.lab_selectFile.pack(side=T.TOP)
+        #self.lab_selectFile.pack(side=T.TOP)
         self.lab_dataLoaded.pack(side=T.LEFT, anchor=T.W)
         self.but_selectFile.pack(side=T.LEFT)
+        self.combo_data.pack(side=T.TOP)
 
-        self.lab_refLoaded.pack(side=T.BOTTOM,anchor=T.W)
-        self.but_selectRef.pack(side=T.BOTTOM,anchor=T.E)
+        self.lab_refLoaded.pack(side=T.LEFT,anchor=T.W)
+        self.but_selectRef.pack(side=T.LEFT,anchor=T.E)
+        self.combo_ref.pack(side=T.TOP)
 
-        self.but_analyze.pack(side=T.BOTTOM,anchor=T.W)
+        self.but_analyze.pack(side=T.TOP)
         #self.but_results.pack()
         #self.but_plot.pack()
 
@@ -476,11 +498,17 @@ class A_ResultTab:
         
         self.frame = ttk.Frame(self.master.nb) # Main frame called by master
         
-        #self.LFrame = A_ResultFrame(self)
+        self.LFrame = A_ResultFrame(self)
         self.RFrame = A_GUIFrame(self)
-        self.RFrame.pack(side=T.LEFT, fill=T.BOTH)
-        #self.LFrame.pack(side=T.LEFT, fill=T.BOTH)
+        
+        self.LFrame.pack(side=T.LEFT, fill=T.BOTH)
+        self.RFrame.pack(side=T.RIGHT, fill=T.BOTH)
         #self.RFrame.pack(side=T.RIGHT, fill=T.BOTH)
+        
+    def Update(self):
+        self.LFrame.Update()
+        self.RFrame.Update()
+        
 #%%
 class A_GUIFrame:
     def __init__(self,master):
@@ -488,42 +516,67 @@ class A_GUIFrame:
         self.master = master
         self.Alch = self.master.Alch
         self.root = self.master.root
+        self.refreshButton = T.Button(master=self.master.frame, text='Refresh', command=self.master.Update)
 
-        self.Update()
+        self.setup_plot()
         self.Arrange()
-
+        self.Update()
+        # TODO: Store some info here that can be shared between the results 
+        # frames eg. the chosen result itself.
+        
+    def setup_plot(self):
+        self.fig = Figure(figsize=(3, 2), dpi=100)
+        self.a = self.fig.add_subplot(111)
+        
     def Update(self):
         """
         Check to see if there is a new figure to plot
         """
+        Vprint('Updating result plot')
+        
+        self.a.clear()
         try:
             l = len(self.Alch.result_list)
         except:
             l = 0    
         if l==1:
             # Temp solution if there's 1 result
-            self.f = self.Alch.result_list[0].export()
+            Vprint('Using actual solution')
+            #result = self.master.result
+            result = self.Alch.result_list[0]
+            self.fig = Figure(figsize=(3, 2), dpi=100)
+            #a = self.f.add_subplot(111)
+            x = result.expData['nm']
+            y = result.expData['data']
+            yy = result.fit
+            self.a.clear()
+            self.a.plot(x,y,x,yy)
+            #self.f = self.Alch.result_list[0].export()
         else:
-            self.f = Figure(figsize=(3, 2), dpi=100)
-            a = self.f.add_subplot(111)
+            Vprint('Using dummy data')
+            #self.f = Figure(figsize=(3, 2), dpi=100)
+            #a = self.f.add_subplot(111)
             t = arange(0.0, 3.0, 0.01)
             s = sin(2*pi*t)
-            a.plot(t, s)
+            self.a.clear()
+            self.a.plot(t, s)
+        self.canvas.draw()
 
     def Arrange(self):
 
-        canvas = FigureCanvasTkAgg(self.f, master=self.master.frame)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.master.frame)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
         
-        toolbar = NavigationToolbar2TkAgg(canvas, self.master.frame)
+        toolbar = NavigationToolbar2TkAgg(self.canvas, self.master.frame)
         toolbar.update()
-        canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
+        self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
+        self.refreshButton.pack()
 
         def on_key_event(event):
             Vprint('you pressed %s' % event.key)
-            key_press_handler(event, canvas, toolbar)
-        canvas.mpl_connect('key_press_event', on_key_event)
+            key_press_handler(event, self.canvas, toolbar)
+        self.canvas.mpl_connect('key_press_event', on_key_event)
 
     def pack(self,*args,**kwargs):
         # To be called by master window
@@ -535,58 +588,32 @@ class A_ResultFrame:
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
-        self.frame = T.Frame(self.master)
+        self.frame = self.master.frame
+        
+        # Establish widgets
+        self.resultChoices = ['Choose a result']
         self.resultName = T.StringVar(self.frame)
-        self.refresh_results()
+        self.resultName.set('Choose a result')
+        self.resultMenu = T.OptionMenu(self.frame,self.resultName,*self.resultChoices, command=self.read_result)
+        self.dummyText = T.StringVar(self.frame,value='none')
+        self.dummyLabel = T.Label(self.frame,textvariable=self.dummyText)
         
-    def Open(self):
-        # Open a window
-        self.window = T.Toplevel(self.root)
-        #self.window.geometry('300x300')
-        #self.window.iconbitmap('lib/alch_flask_icon.ico')
-
-        # Create some things that require a window
-        self.resultName = T.StringVar(self.frame)
-        #self.F = Figure(figsize=(5, 4), dpi=100)
-        # Removed since this is now a frame, not window
-        #self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
-        self.windowOpen = True # Window officially exists now
+        # Check for initial data
+        self.Update()
         
-    def Focus(self):
-        """
-        Open a single file browse window, or focus an already opened one.
-        """
-        if self.windowOpen:
-            # If we already have one open, raise it
-            try:
-                self.window.deiconify()
-                Vprint('Used deiconify()')
-            except:
-                self.window.lift()
-                Vprint('Used lift()')
-        else:
-            # Else, create a new one
-            Vprint('Making a new window!')
-            self.Open()
-        # Either way, update result list
-        self.refresh_results()
-
-    def Cancel(self):
-        self.window.withdraw()
+        # Pack the widgets
+        self.Arrange()
         
-    def refresh_results(self):
+    def Update(self):
         self.results = self.master.Alch.result_list # List of result objects
         # Result list dropdown items
         self.resultChoices = ['Choose a result']
         self.resultName.set('Choose a result')
         for r in self.results:
+            Vprint(r)
             # Get a string of the epoch timestamp of each result
             self.resultChoices.append(str(r.ts.timestamp()))
-        self.resultMenu = T.OptionMenu(self.frame,self.resultName,*self.resultChoices, command=self.read_result)
-        self.dummyText = T.StringVar(self.frame,value='none')
-        self.dummyLabel = T.Label(self.frame,textvariable=self.dummyText)
-        self.Arrange()
-        
+
     def read_result(self,*args):
         """
         Get data about the chosen result
@@ -600,41 +627,12 @@ class A_ResultFrame:
             Vprint('Default option selected, aborting read_result')
             return
         resultLoc = self.resultChoices.index(theChoice)-1
+        #self.master.result = self.results[resultLoc]
         result = self.results[resultLoc]
         # Change the display text shown
         #self.dummyText.set(str(result.ts))
         self.dummyText.set(result.ts.strftime("%c"))
 
-    def plot_frame(self):
-        """
-        The frame which contains a matplotlib canvas and figure
-        """
-        root = self.master.root
-        
-        f = Figure(figsize=(5, 4), dpi=100)
-        a = f.add_subplot(111)
-        t = arange(0.0, 3.0, 0.01)
-        s = sin(2*pi*t)
-        a.plot(t, s)
-        canvas = FigureCanvasTkAgg(f, master=root)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
-        
-        toolbar = NavigationToolbar2TkAgg(canvas, root)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
-        def _quit():
-            root.quit()
-            root.destroy() 
-        def on_key_event(event):
-            print('you pressed %s' % event.key)
-            key_press_handler(event, canvas, toolbar)
-        canvas.mpl_connect('key_press_event', on_key_event)
-
-        button = T.Button(master=root, text='Quit', command=_quit)
-        button.pack(side=T.BOTTOM) 
-        
-        
     def addItem(self,item):
         """
         Accept an indivudal species and number combination and make a widget
@@ -653,7 +651,7 @@ class A_ResultFrame:
         self.resultMenu.pack()
         self.dummyLabel.pack()
         # Place widgets into the window and pack()
-        
+
     def pack(self,*args,**kwargs):
         # To be called by master window
         self.frame.pack(*args,**kwargs)
@@ -661,6 +659,5 @@ class A_ResultFrame:
 #%% Execute loop
 root = T.Tk()
 
-root.iconbitmap('lib/alch_flask_icon.ico')
 app = A_main(root)
 root.mainloop()
