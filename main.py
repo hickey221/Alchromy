@@ -144,7 +144,7 @@ class A_L_frame:
         # Initialize, but do not open, browse windows
         self.dataWindow = A_LoadWindow(self,colType='exp')
         self.refWindow = A_LoadWindow(self,colType='ref')
-        #self.resultWindow = A_ResultWindow(self)
+        self.threshWindow = Threshold_window(self)
         
         # Create all the stuff
         self.make_widgets()
@@ -170,9 +170,8 @@ class A_L_frame:
 
         # Analyze button!
         self.but_analyze = T.Button(self.frame, text='Begin analysis', command=self.analyze)
-        # Results test button
-        #self.but_results = T.Button(self.frame, text='Result window', command=self.resultWindow.Focus)
-        #self.but_plot = T.Button(self.frame, text='Plot test',command=self.resultWindow.plot_frame)
+        # Threshold test button
+        self.but_thresh = T.Button(self.frame, text='Threshold', command=self.threshWindow.Focus)
  
     def preload_ref(self):
         """
@@ -241,6 +240,7 @@ class A_L_frame:
         self.combo_ref.pack(side=T.TOP)
 
         self.but_analyze.pack(side=T.TOP)
+        self.but_thresh.pack(side=T.TOP)
         #self.but_results.pack()
         #self.but_plot.pack()
 
@@ -376,7 +376,8 @@ class A_LoadWindow:
             # Bug fix for duplicate 2nd column name in some Olis-produced files
             if self.df.columns[1] == '0.1':
                 self.df.rename(columns={self.df.columns[1]:'0'}, inplace=True)
-
+            # Treat 'nm' as the index column - may break older code!
+            self.df.set_index('nm', inplace=True, drop=False)
             # Add stuff to the listBox
             self.cols = list(self.df.drop('nm',axis=1)) # Data col names
             Vprint('Sending',self.cols,'to List()')
@@ -573,10 +574,10 @@ class A_GUIFrame:
         self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
         self.refreshButton.pack()
 
-        def on_key_event(event):
-            Vprint('you pressed %s' % event.key)
-            key_press_handler(event, self.canvas, toolbar)
-        self.canvas.mpl_connect('key_press_event', on_key_event)
+        #def on_key_event(event):
+        #    Vprint('you pressed %s' % event.key)
+        #    key_press_handler(event, self.canvas, toolbar)
+        #self.canvas.mpl_connect('key_press_event', on_key_event)
 
     def pack(self,*args,**kwargs):
         # To be called by master window
@@ -655,6 +656,155 @@ class A_ResultFrame:
     def pack(self,*args,**kwargs):
         # To be called by master window
         self.frame.pack(*args,**kwargs)
+
+#%% Thresholding popup
+class Threshold_window:
+    def __init__(self, master):
+        self.master = master
+        self.root = self.master.root
+        self.Alch = self.master.Alch
+        self.windowOpen = None
+        self.ymin = 0
+        self.ymax = 200000
+        
+        self.threshold = T.DoubleVar(value=0) # 0 = not active
+        #self.threshold = 0
+        self.wavelength = T.DoubleVar(value=540) # 0 = not active
+    
+    def Open(self):
+        """
+        Create a new TopLevel window and populate with widgets
+        """
+        self.window = T.Toplevel(self.root)
+        self.window.geometry('600x400')
+        self.window.resizable(False, False) #Disable x, y resize
+        self.window.iconbitmap('lib/alch_flask_icon.ico')
+    
+        # Make and pack frames in this window
+        self.panelFrame = T.Frame(self.window)
+        self.plotFrame = T.Frame(self.window)
+        self.panelFrame.pack(side=T.LEFT)
+        self.plotFrame.pack(side=T.RIGHT)
+        
+        # Make and arrange contents of frames
+        try:
+            self.xmin = min(self.Alch.dataCols)
+            self.xmax = max(self.Alch.dataCols)
+            Vprint("Using x limits",self.xmin,self.xmax)
+        except Exception as e:
+            Vprint("Error getting min/max from timepoints",e)        
+        self.setup_plot()
+        self.wavelength_box = T.Entry(self.panelFrame, textvariable=self.wavelength)
+        self.wavelength_box.pack()
+
+        self.thresh_scale = T.Scale(self.panelFrame, 
+                                  from_= self.ymax, 
+                                  to=self.ymin, 
+                                  orient=T.VERTICAL, 
+                                  resolution=0.01,
+                                  variable=self.threshold,
+                                  command=self.Update)
+        self.thresh_scale.pack()
+        
+        # Call the first update
+        self.Update()
+        
+        # Set window status and close procedure
+        self.window.protocol('WM_DELETE_WINDOW', self.Cancel) # X = Cancel()
+        self.windowOpen = True
+        
+    def Focus(self):
+        """
+        Check to see if we exist. If so, focus the window. Else, call Open()
+        """
+        if self.windowOpen:
+            # If we already have one open, raise it
+            try:
+                self.window.deiconify()
+                Vprint('Used deiconify()')
+            except:
+                self.window.lift()
+                Vprint('Used lift()')
+            # Load data
+        else:
+            # Else, create a new one
+            Vprint('Making a new window!')
+            self.Open()
+            
+    def Cancel(self):
+        """
+        Reset to original values then close window
+        TODO: Use previously selected values. Currently just resets to 0.
+        """
+        self.threshold.set(0)
+        self.wavelength.set(540)
+        self.window.withdraw()
+        
+    def Save(self):
+        """
+        Acknolwedge currently selected values and close window
+        """
+        self.window.withdraw()
+        
+    def setup_plot(self):
+        """
+        One time setup of figure canvas
+        """
+        self.fig = Figure(figsize=(3, 2), dpi=100)
+        self.sp = self.fig.add_subplot(111)
+        self.sp.set_ylim([self.ymin,self.ymax])
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.plotFrame)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
+        self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
+        
+    def draw_line(self):
+        """
+        Draw a horizontal line at the specified threshold
+        """
+
+        #self.sp.axhline(y=self.threshold.get(), xmin=0, xmax=1)
+        y = self.thresh_scale.get()
+        self.threshold.set(y) # save this to our variable
+        if y == 0:
+            Vprint("Threshold at 0, not drawing")
+        else:
+            #Vprint("Redrawing at",y)
+            self.sp.plot((0,1), (y,y))
+    
+    def draw_data(self):
+        try:
+            data = self.Alch.exp[self.Alch.exp['nm'] == self.wavelength.get()]
+            data = data.values
+            data = data[0][1:]
+            
+            #data = self.Alch.exp.loc[[self.wavelength.get()]]
+            
+        except Exception as e:
+            Vprint("Error: Couldn't read that wavelength",e)
+            Vprint(self.Alch.exp.index)
+            return
+        try:
+            times = [float(i) for i in self.Alch.dataCols]
+        except:
+            Vprint("Error getting data columns")
+        if len(times) < 2:
+            Vprint("Error: Number of timepoints is 1 or fewer")
+            
+        # For a (single) given wavelength
+            # Draw a point representing absorbance at that time
+        Vprint("Trying to scatter",times,"and",data)
+        self.sp.scatter(times,data)
+                # If above threshold, color one way
+                # If not, color differently
+
+    def Update(self, *args):
+        self.sp.clear()
+        self.sp.set_ylim([self.ymin,self.ymax])
+        #self.sp.set_ylim([self.xmin,self.xmax])
+        self.draw_line()
+        self.draw_data()
+        self.canvas.draw()
 
 #%% Execute loop
 root = T.Tk()

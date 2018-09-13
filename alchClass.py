@@ -147,6 +147,8 @@ class Alch():
 
             dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
             #print('Read '+str(dataCols)+' during read_file()')
+            # New: Officially set first column as index
+            
             return df, dataCols
         else:
             print("Error: File must be of type:",allowedFiles)
