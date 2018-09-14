@@ -356,9 +356,9 @@ class A_LoadWindow:
         Read in the data from a spreadsheet file. Assumes a header row, and
         the first column must contain the x-axis (wavelengths).
         """
-        Vprint('Check 1')
+
         _, ext = os.path.splitext(self.filePath.get())
-        Vprint('Check 2')
+ 
         allowedFiles = ['.csv','.dat','.txt','.xls','.xlsx']
             # Read in the file
         Vprint("My extension is",ext)
@@ -369,7 +369,7 @@ class A_LoadWindow:
             else:
                 Vprint("Reading as plaintext (tab delim)")
                 self.df = pd.read_csv(self.filePath.get(),'\t')
-            Vprint('Check 3')
+
             # Clean up the dataframe
             # Rename first column as 'nm' for wavelengths
             self.df.rename(columns={self.df.columns[0]:'nm'}, inplace=True)
@@ -380,7 +380,7 @@ class A_LoadWindow:
             self.df.set_index('nm', inplace=True, drop=False)
             # Add stuff to the listBox
             self.cols = list(self.df.drop('nm',axis=1)) # Data col names
-            Vprint('Sending',self.cols,'to List()')
+            Vprint('Sending cols to List()')
             #self.List() # done in Browse()
 
         else:
@@ -434,7 +434,7 @@ class A_LoadWindow:
         # Get the desired columns from the listbox
         selectedCols = [self.listItems.get(i) for i in self.listItems.curselection()]
         selectedCols.insert(0,'nm') # Don't forget the 1st col!
-        Vprint('Saving', selectedCols, 'from', self.filePath.get())
+        Vprint('Saving selected cols from self.filePath.get()')
 
         # Save selected list cols to the Alch df
         self.master.Alch.load_cols(self.df,self.colType,self.filePath.get())
@@ -665,11 +665,11 @@ class Threshold_window:
         self.Alch = self.master.Alch
         self.windowOpen = None
         self.ymin = 0
-        self.ymax = 200000
+        self.ymax = T.DoubleVar(value=3)
         
         self.threshold = T.DoubleVar(value=0) # 0 = not active
         #self.threshold = 0
-        self.wavelength = T.DoubleVar(value=540) # 0 = not active
+        self.wavelength = T.StringVar(value='540') # 0 = not active
     
     def Open(self):
         """
@@ -687,26 +687,29 @@ class Threshold_window:
         self.plotFrame.pack(side=T.RIGHT)
         
         # Make and arrange contents of frames
-        try:
-            self.xmin = min(self.Alch.dataCols)
-            self.xmax = max(self.Alch.dataCols)
-            Vprint("Using x limits",self.xmin,self.xmax)
-        except Exception as e:
-            Vprint("Error getting min/max from timepoints",e)        
         self.setup_plot()
-        self.wavelength_box = T.Entry(self.panelFrame, textvariable=self.wavelength)
+        
+        # Wavelength selection box and button
+        self.wavelength_box = T.Entry(self.panelFrame, textvariable=self.wavelength, width=6)
+        self.wavelength_box.insert(0,self.wavelength.get())
         self.wavelength_box.pack()
-
+        self.waveload = T.Button(self.panelFrame, text='Set wavelength', command=self.get_data)
+        self.waveload.pack()
+        
+        # Threshold scale bar
         self.thresh_scale = T.Scale(self.panelFrame, 
-                                  from_= self.ymax, 
+                                  from_= self.ymax.get(), 
                                   to=self.ymin, 
                                   orient=T.VERTICAL, 
                                   resolution=0.01,
                                   variable=self.threshold,
                                   command=self.Update)
         self.thresh_scale.pack()
+
+        self.save_button = T.Button(self.panelFrame, text='Save',command=self.Save)
         
-        # Call the first update
+        # Call the first updates
+        self.get_data()
         self.Update()
         
         # Set window status and close procedure
@@ -737,13 +740,19 @@ class Threshold_window:
         TODO: Use previously selected values. Currently just resets to 0.
         """
         self.threshold.set(0)
-        self.wavelength.set(540)
+        self.wavelength.set('540')
         self.window.withdraw()
         
     def Save(self):
         """
         Acknolwedge currently selected values and close window
         """
+        # Save original data as raw
+        self.Alch.raw = self.Alch.exp
+        # Trim data based on what's selected 
+        self.Alch.exp = self.Alch.exp[self.Alch.exp]
+        
+        # Close the window
         self.window.withdraw()
         
     def setup_plot(self):
@@ -752,7 +761,7 @@ class Threshold_window:
         """
         self.fig = Figure(figsize=(3, 2), dpi=100)
         self.sp = self.fig.add_subplot(111)
-        self.sp.set_ylim([self.ymin,self.ymax])
+        self.sp.set_ylim([self.ymin,self.ymax.get()])
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plotFrame)
         self.canvas.show()
         self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
@@ -770,14 +779,28 @@ class Threshold_window:
             Vprint("Threshold at 0, not drawing")
         else:
             #Vprint("Redrawing at",y)
-            self.sp.plot((0,1), (y,y))
+            self.sp.plot((self.xmin,self.xmax), (y,y))
     
-    def draw_data(self):
+    def get_data(self):
+        self.wavelength.set(self.wavelength_box.get())
+        Vprint("Loading all timepoints at wavelength",self.wavelength.get())
         try:
-            data = self.Alch.exp[self.Alch.exp['nm'] == self.wavelength.get()]
-            data = data.values
-            data = data[0][1:]
+            self.xmin = min(self.Alch.dataCols)
+            self.xmax = max(self.Alch.dataCols)
+            Vprint("Using x limits",self.xmin,self.xmax)
+        except Exception as e:
+            Vprint("Error getting min/max from timepoints",e) 
             
+        try:
+            self.data = self.Alch.exp[self.Alch.exp['nm'] == float(self.wavelength.get())]
+            self.data = self.data.values
+            self.data = self.data[0][1:]
+            
+            self.ymax.set(max(self.data))
+            Vprint("Changing threshold scale to max of",self.ymax.get())
+            self.thresh_scale.configure(from_= self.ymax.get())
+            self.sp.set_ylim([self.ymin,self.ymax.get()])
+            Vprint("Using y limits",self.ymin,self.ymax.get())
             #data = self.Alch.exp.loc[[self.wavelength.get()]]
             
         except Exception as e:
@@ -785,22 +808,24 @@ class Threshold_window:
             Vprint(self.Alch.exp.index)
             return
         try:
-            times = [float(i) for i in self.Alch.dataCols]
+            self.times = [float(i) for i in self.Alch.dataCols]
         except:
             Vprint("Error getting data columns")
-        if len(times) < 2:
+        if len(self.times) < 2:
             Vprint("Error: Number of timepoints is 1 or fewer")
-            
+        self.Update()
+    
+    def draw_data(self):
         # For a (single) given wavelength
             # Draw a point representing absorbance at that time
-        Vprint("Trying to scatter",times,"and",data)
-        self.sp.scatter(times,data)
+        cmap, norm = matplotlib.colors.from_levels_and_colors([self.threshold.get()], ['blue','red'],extend='both')
+
+        self.sp.scatter(self.times,self.data, c=self.data, cmap=cmap, norm=norm)
                 # If above threshold, color one way
                 # If not, color differently
 
     def Update(self, *args):
         self.sp.clear()
-        self.sp.set_ylim([self.ymin,self.ymax])
         #self.sp.set_ylim([self.xmin,self.xmax])
         self.draw_line()
         self.draw_data()
