@@ -13,12 +13,11 @@ from PIL import Image, ImageTk
 from warnings import warn
 import pandas as pd
 import os
-from numpy import arange, sin, pi #TEMP for embedded plot test
 # For result GUI
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-from matplotlib.backend_bases import key_press_handler
+#from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 # Custom imports
 #from themes import * # For dict solarized
@@ -29,6 +28,8 @@ versionNumber = '1.5.0'
 global selectedTheme
 global verbose
 verbose = True
+matplotlib.pyplot.close("all")
+
 #def set_theme(frame, mode):
 #    if mode=='light':
 #        frame.tk_setPalette(background=solarized['lightbg1'], foreground=solarized['lighttext1'],
@@ -72,17 +73,22 @@ class A_main:
 
         # Make frames and pack them
         #self.menuFrame = A_Menu(self.master)
-        self.leftFrame = A_L_frame(self)
-        self.rightFrame = A_R_frame(self)
-        
+        Vprint('Establishing input panel tab')
+        try:
+            self.leftFrame = Input_panel(self)
+            self.nb.add(self.leftFrame.frame, text='Input')
+        except Exception as e:
+            Vprint('Not able to create Input panel:',e)
+            
+        Vprint('Establishing result tab')
+
         try:
             self.resultFrame = A_ResultTab(self)
-            Vprint('Able to create resultFrame')
+            self.nb.add(self.resultFrame.frame, text='Results')
+            Vprint('Able to create resultTab')
         except Exception as e:
-            Vprint('Not able to create resultFrame:',e)
+            Vprint('Not able to create resultTab:',e)
         
-        self.nb.add(self.leftFrame.frame, text='Input')
-        self.nb.add(self.resultFrame.frame, text='Results')
         self.nb.pack(expand=1, fill='both')
         
     def Update(self):
@@ -91,8 +97,6 @@ class A_main:
             self.resultFrame.Update()
         except:
             Vprint('Could not find self.resultFrame')
-
-        #self.resultFrame.Update()
 
     def arrange(self):
         #self.custom_menu.pack(side=T.TOP,fill=T.X)
@@ -129,7 +133,7 @@ class A_main:
         messagebox.showinfo('Alchromy','Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion '+versionNumber+'\nRichard Hickey\nOhio State University\n2018')
 
 #%% LEFT FRAME - MAIN CONFIG PANEL
-class A_L_frame:
+class Input_panel:
     """
     Panel in main window for controlling file loading and other operations
     """
@@ -155,6 +159,7 @@ class A_L_frame:
         self.arrange()
         
     def make_widgets(self):
+        Vprint('Creating widgets for input panel')
         # Make data browse buttons
         self.combo_data = T.Frame(self.frame)
         #self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
@@ -188,26 +193,28 @@ class A_L_frame:
     
     def analyze(self):
         # Check to see if we're ready
+        Vprint('Data file status:',self.str_dataLoaded.get())
+        Vprint('Ref file status:',self.str_refLoaded.get())
         self.status_update()
-        if not self.str_dataLoaded.get():
-            warn("Don't have data files loaded")
+        #TODO: Remove string check to see if files present
+        if self.str_dataLoaded.get()=='Data not loaded':
+            warn("Aborting: No data files loaded")
             return
-        elif not self.str_refLoaded.get():
-            warn("Don't have reference files loaded")
+        elif self.str_refLoaded.get()=='Reference not loaded':
+            warn("Aborting: No reference files loaded")
             return
         else:
             # If it all looks good, tell Alch to get to make a new result
             Vprint('Calling for a result to be generated')
             self.Alch.generate_result()
+            self.master.Update()
             
-            
-            #self.Alch.plot_results()
 
     def status_update(self):
         """
         Check if the Alch object has loaded data yet
         """
-        Vprint('Updating status')
+        Vprint('Updating panel status')
         # Check if data file has been locked in
         if self.Alch.expPath:
             self.str_dataLoaded.set('Data file loaded')
@@ -222,13 +229,14 @@ class A_L_frame:
         else:
             self.str_refLoaded.set('Reference not loaded')
             self.lab_refLoaded.config(bg='red')
-        self.master.Update()
+        self.master.Update() # TODO: This causes error if resultFrame DNE
 
     def pack(self,*args,**kwargs):
         # To be called by master window
         self.frame.pack(*args,**kwargs)
 
     def arrange(self):
+        Vprint('Arranging widgets in input panel')
         # Pack everything together
         #self.lab_selectFile.pack(side=T.TOP)
         self.lab_dataLoaded.pack(side=T.LEFT, anchor=T.W)
@@ -492,11 +500,11 @@ class A_ResultTab:
     Methods:
 
     """
-    def __init__(self, master):
+    def __init__(self, master, *args):
         self.master = master
         self.root = self.master.root
         self.Alch = self.master.Alch
-        
+        self.chosenResult = None
         self.frame = ttk.Frame(self.master.nb) # Main frame called by master
         
         self.LFrame = A_ResultFrame(self)
@@ -515,10 +523,10 @@ class A_GUIFrame:
     def __init__(self,master):
         Vprint('Starting GUIFrame')
         self.master = master
-        self.Alch = self.master.Alch
+        self.Alch = self.master.Alch #Everyone shares the same Alch
         self.root = self.master.root
         self.refreshButton = T.Button(master=self.master.frame, text='Refresh', command=self.master.Update)
-
+        
         self.setup_plot()
         self.Arrange()
         self.Update()
@@ -533,18 +541,19 @@ class A_GUIFrame:
         """
         Check to see if there is a new figure to plot
         """
+        ## Update for dropdown menu
+        self.results = self.master.Alch.result_list # List of result objects
+        
         Vprint('Updating result plot')
         
         self.a.clear()
-        try:
-            l = len(self.Alch.result_list)
-        except:
-            l = 0    
-        if l==1:
+        # If we have specified a result to plot
+        if self.master.chosenResult:
             # Temp solution if there's 1 result
             Vprint('Using actual solution')
-            #result = self.master.result
-            result = self.Alch.result_list[0]
+            result = self.master.chosenResult # Get active result from above
+            #result = self.Alch.result_list[0]
+            # TODO: Generate figure object from the alchClass itself
             self.fig = Figure(figsize=(3, 2), dpi=100)
             #a = self.f.add_subplot(111)
             x = result.expData['nm']
@@ -554,13 +563,13 @@ class A_GUIFrame:
             self.a.plot(x,y,x,yy)
             #self.f = self.Alch.result_list[0].export()
         else:
-            Vprint('Using dummy data')
+            Vprint('No chosen result, plotting nothing')
             #self.f = Figure(figsize=(3, 2), dpi=100)
             #a = self.f.add_subplot(111)
-            t = arange(0.0, 3.0, 0.01)
-            s = sin(2*pi*t)
-            self.a.clear()
-            self.a.plot(t, s)
+            #t = arange(0.0, 3.0, 0.01)
+            #s = sin(2*pi*t)
+            #self.a.clear()
+            #self.a.plot(t, s)
         self.canvas.draw()
 
     def Arrange(self):
@@ -574,6 +583,7 @@ class A_GUIFrame:
         self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
         self.refreshButton.pack()
 
+
         #def on_key_event(event):
         #    Vprint('you pressed %s' % event.key)
         #    key_press_handler(event, self.canvas, toolbar)
@@ -585,17 +595,23 @@ class A_GUIFrame:
         #self.frame.pack(*args,**kwargs)
 #%%
 class A_ResultFrame:
-    def __init__(self,master):
+    def __init__(self, master, *args):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
         self.frame = self.master.frame
         
+        self.results = self.master.Alch.result_list
+        self.default_text = 'Choose a result'
         # Establish widgets
-        self.resultChoices = ['Choose a result']
-        self.resultName = T.StringVar(self.frame)
-        self.resultName.set('Choose a result')
-        self.resultMenu = T.OptionMenu(self.frame,self.resultName,*self.resultChoices, command=self.read_result)
+        #self.resultChoices = ['Choose a result']
+        #self.resultName = T.StringVar(self.frame)
+        #self.resultName.set('Choose a result')
+        
+        self.resultMenu = T.Listbox(self.frame,selectmode='single')
+        self.resultMenu. insert(T.END, self.default_text) # First item
+        self.resultMenu.bind('<<ListboxSelect>>', self.read_result) # Bind function to item selection
+        
         self.dummyText = T.StringVar(self.frame,value='none')
         self.dummyLabel = T.Label(self.frame,textvariable=self.dummyText)
         
@@ -606,33 +622,45 @@ class A_ResultFrame:
         self.Arrange()
         
     def Update(self):
+        # Update list of actual results
         self.results = self.master.Alch.result_list # List of result objects
-        # Result list dropdown items
-        self.resultChoices = ['Choose a result']
-        self.resultName.set('Choose a result')
+
+        # Delete all but first entry
+        self.resultMenu.delete(1,'end')
+        Vprint('The following results exist:')
         for r in self.results:
             Vprint(r)
             # Get a string of the epoch timestamp of each result
-            self.resultChoices.append(str(r.ts.timestamp()))
-
+            r_name = str(r.ts.strftime("%c"))
+            #self.resultChoices.append(str(r.ts.timestamp()))
+            self.resultMenu.insert(T.END,r_name)
+            # Update optionmenu
+            #self.resultMenu['menu'].add_command(label=r_name,command=T._setit(self.resultChoices, r_name))
+            
     def read_result(self,*args):
         """
         Get data about the chosen result
         """
         Vprint('Looking inside resultChoices menu')
-        theChoice = self.resultName.get()
-        for i in self.resultChoices:
-            print(i)
-        if theChoice=='Choose a result':
+        theIndex = self.resultMenu.curselection()[0]
+        Vprint('The index is',theIndex)
+        theChoice = self.resultMenu.get(theIndex)
+        Vprint('The value is',theChoice)
+        
+        if theChoice==self.default_text:
             # Break if nothing selected yet
             Vprint('Default option selected, aborting read_result')
+            self.master.chosenResult = None
+            self.master.Update()
             return
-        resultLoc = self.resultChoices.index(theChoice)-1
-        #self.master.result = self.results[resultLoc]
-        result = self.results[resultLoc]
+        
+        # Change the officially selected result object
+        self.master.chosenResult = self.results[theIndex-1]
+        
         # Change the display text shown
-        #self.dummyText.set(str(result.ts))
-        self.dummyText.set(result.ts.strftime("%c"))
+        self.dummyText.set(self.master.chosenResult.ts.strftime("%c"))
+        
+        self.master.Update()
 
     def addItem(self,item):
         """
@@ -641,12 +669,6 @@ class A_ResultFrame:
         # Generate label based on species
         # Add
         pass
-
-    # Method for producing wigdets to reside in this frame
-            # Widget containing data from the results
-            # Image
-            # Settings used
-            # Numeric data (percent composition)
 
     def Arrange(self):
         self.resultMenu.pack()
