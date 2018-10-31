@@ -19,6 +19,7 @@ matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 #from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
+from matplotlib.offsetbox import AnchoredText
 # Custom imports
 #from themes import * # For dict solarized
 import alchClass
@@ -28,7 +29,6 @@ versionNumber = '1.5.0'
 global selectedTheme
 global verbose
 verbose = True
-matplotlib.pyplot.close("all")
 
 #def set_theme(frame, mode):
 #    if mode=='light':
@@ -82,14 +82,14 @@ class A_main:
             
         Vprint('Establishing result tab')
 
-        try:
-            self.resultFrame = A_ResultTab(self)
-            self.nb.add(self.resultFrame.frame, text='Results')
-            Vprint('Able to create resultTab')
-        except Exception as e:
-            Vprint('Not able to create resultTab:',e)
+        #try:
+        self.resultFrame = A_ResultTab(self)
+        self.nb.add(self.resultFrame.frame, text='Results')
+        Vprint('Able to create resultTab')
+        #except Exception as e:
+            #Vprint('Not able to create resultTab:',e)
         
-        self.nb.pack(expand=1, fill='both')
+        self.nb.pack(expand=1, side=T.LEFT, fill='both')
         
     def Update(self):
         Vprint('Updating Main')
@@ -98,13 +98,9 @@ class A_main:
         except:
             Vprint('Could not find self.resultFrame')
 
-    def arrange(self):
-        #self.custom_menu.pack(side=T.TOP,fill=T.X)
-        self.leftFrame.pack(side=T.LEFT, fill=T.BOTH)
-        self.rightFrame.pack(side=T.RIGHT,fill=T.Y)
-        
     def _quit(self):
         Vprint('Quitting...')
+        matplotlib.pyplot.close("all")
         self.root.quit()
         self.root.destroy() 
 
@@ -492,6 +488,9 @@ class A_LoadWindow:
         self.but_reset.pack(side=T.RIGHT)
         self.but_cancel.pack(side=T.RIGHT)
         self.but_save.pack(side=T.RIGHT)
+        
+###############################################################################
+###############################################################################
 #%%
 class A_ResultTab:
     """
@@ -510,22 +509,25 @@ class A_ResultTab:
         self.LFrame = A_ResultFrame(self)
         self.RFrame = A_GUIFrame(self)
         
-        self.LFrame.pack(side=T.LEFT, fill=T.BOTH)
-        self.RFrame.pack(side=T.RIGHT, fill=T.BOTH)
+        self.LFrame.pack(side=T.LEFT, fill=T.Y)
+        self.RFrame.pack(side=T.LEFT, fill=T.BOTH, expand=1)
         #self.RFrame.pack(side=T.RIGHT, fill=T.BOTH)
         
     def Update(self):
         self.LFrame.Update()
         self.RFrame.Update()
-        
+###############################################################################
+###############################################################################
 #%%
 class A_GUIFrame:
     def __init__(self,master):
         Vprint('Starting GUIFrame')
         self.master = master
         self.Alch = self.master.Alch #Everyone shares the same Alch
+        self.frame = T.Frame(self.master.frame)
         self.root = self.master.root
-        self.refreshButton = T.Button(master=self.master.frame, text='Refresh', command=self.master.Update)
+        self.refreshButton = T.Button(master=self.frame, text='Refresh', command=self.master.Update)
+        
         
         self.setup_plot()
         self.Arrange()
@@ -535,7 +537,7 @@ class A_GUIFrame:
         
     def setup_plot(self):
         self.fig = Figure(figsize=(3, 2), dpi=100)
-        self.a = self.fig.add_subplot(111)
+        self.ax = self.fig.add_subplot(111)
         
     def Update(self):
         """
@@ -546,12 +548,13 @@ class A_GUIFrame:
         
         Vprint('Updating result plot')
         
-        self.a.clear()
+        self.ax.clear()
         # If we have specified a result to plot
         if self.master.chosenResult:
             # Temp solution if there's 1 result
             Vprint('Using actual solution')
             result = self.master.chosenResult # Get active result from above
+            r_name = str(result.ts.strftime("%c"))
             #result = self.Alch.result_list[0]
             # TODO: Generate figure object from the alchClass itself
             self.fig = Figure(figsize=(3, 2), dpi=100)
@@ -559,8 +562,11 @@ class A_GUIFrame:
             x = result.expData['nm']
             y = result.expData['data']
             yy = result.fit
-            self.a.clear()
-            self.a.plot(x,y,x,yy)
+            self.ax.clear()
+            self.ax.plot(x,y,x,yy)
+            self.ax.set_title(r_name)
+            self.ax.set_xlabel('Wavelength (nm)')
+            self.ax.set_ylabel('Absorbance')
             #self.f = self.Alch.result_list[0].export()
         else:
             Vprint('No chosen result, plotting nothing')
@@ -574,15 +580,14 @@ class A_GUIFrame:
 
     def Arrange(self):
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.master.frame)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.show()
         self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
         
-        toolbar = NavigationToolbar2TkAgg(self.canvas, self.master.frame)
+        toolbar = NavigationToolbar2TkAgg(self.canvas, self.frame)
         toolbar.update()
         self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
         self.refreshButton.pack()
-
 
         #def on_key_event(event):
         #    Vprint('you pressed %s' % event.key)
@@ -591,15 +596,16 @@ class A_GUIFrame:
 
     def pack(self,*args,**kwargs):
         # To be called by master window
-        pass
-        #self.frame.pack(*args,**kwargs)
+        self.frame.pack(*args,**kwargs)
+###############################################################################
+###############################################################################
 #%%
 class A_ResultFrame:
     def __init__(self, master, *args):
         self.master = master # Frame containing loadWindow, Alch, etc.
         self.root = self.master.root # All the way up to root
         self.windowOpen = None # Object starts without a window
-        self.frame = self.master.frame
+        self.frame = T.Frame(self.master.frame)
         
         self.results = self.master.Alch.result_list
         self.default_text = 'Choose a result'
@@ -679,6 +685,7 @@ class A_ResultFrame:
         # To be called by master window
         self.frame.pack(*args,**kwargs)
 
+###############################################################################
 #%% Thresholding popup
 class Threshold_window:
     def __init__(self, master):
