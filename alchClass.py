@@ -246,7 +246,7 @@ class Result:
         anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
         anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
         ax.add_artist(anchored_text)
-        ax.legend(loc=1)
+        ax.legend(loc=1) 
         #plt.close(fig)
         #print(type(fig))
         #plt.show()

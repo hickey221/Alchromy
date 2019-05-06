@@ -88,7 +88,7 @@ class A_main:
         Vprint('Able to create resultTab')
         #except Exception as e:
             #Vprint('Not able to create resultTab:',e)
-        
+        #TODO: Add HPLC tab separately and include threshold widget
         self.nb.pack(expand=1, side=T.LEFT, fill='both')
         
     def Update(self):
@@ -156,6 +156,18 @@ class Input_panel:
         
     def make_widgets(self):
         Vprint('Creating widgets for input panel')
+        # Make logo header
+        self.logo_container = T.Frame(self.frame)
+        #path = 'lib/alch_flask_icon.gif'
+        #_img = T.PhotoImage(file=path)
+        #_img = _img.resize((90, 90))
+        #self.logo = T.Label(self.logo_container, image = _img)
+        #self.logo.image = _img
+        self.logo = T.Label(self.logo_container, text='Alchromy v'+versionNumber)
+        self.logo.pack(side=T.RIGHT)
+        self.logo_border =  ttk.Separator(self.logo_container, orient="horizontal")
+        self.logo_border.pack(side=T.BOTTOM,fill=T.X)
+        
         # Make data browse buttons
         self.combo_data = T.Frame(self.frame)
         #self.lab_selectFile = T.Label(self.frame, text='Input file(s)')
@@ -234,6 +246,10 @@ class Input_panel:
     def arrange(self):
         Vprint('Arranging widgets in input panel')
         # Pack everything together
+        
+        # Logo container at top
+        self.logo_container.pack(side=T.TOP, fill=T.X)
+        
         #self.lab_selectFile.pack(side=T.TOP)
         self.lab_dataLoaded.pack(side=T.LEFT, anchor=T.W)
         self.but_selectFile.pack(side=T.LEFT)
@@ -563,10 +579,14 @@ class A_GUIFrame:
             y = result.expData['data']
             yy = result.fit
             self.ax.clear()
-            self.ax.plot(x,y,x,yy)
+            
+            self.ax.plot(x, y, 'b.-', label='data')
+            self.ax.plot(x, yy, 'r-', label='fit')
+            
             self.ax.set_title(r_name)
             self.ax.set_xlabel('Wavelength (nm)')
             self.ax.set_ylabel('Absorbance')
+            self.ax.legend(loc=1) 
             #self.f = self.Alch.result_list[0].export()
         else:
             Vprint('No chosen result, plotting nothing')
