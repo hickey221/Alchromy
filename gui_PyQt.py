@@ -1,10 +1,16 @@
-# PtQt5=5.9.2
+# PyQt5==5.9.2
 
+import sys
 from PyQt5.QtWidgets import *
+#QWidget,QCheckBox,QComboBox,QCommandLinkButton,QDateEdit,QDateTimeEdit,QTimeEdit,QDial,QFocusFrame,QFontComboBox,QLabel,QLCDNumber,QLineEdit,QMenu,QProgressBar,QPushButton,QRadioButton,QScrollArea,QScrollBar,QSizeGrip,QSlider,QDoubleSpinBox,QSpinBox
 from PyQt5.QtGui import QKeySequence, QPalette, QColor, QDesktopServices
-from PyQt5.QtCore import Qt, QUrl
 
-app = QApplication([])
+from PyQt5.QtCore import Qt, QUrl, QCoreApplication
+
+#app = QApplication([])
+app = QCoreApplication.instance()
+if app is None:
+    app = QApplication(sys.argv)
 app.setApplicationName("Alchromy")
 
 
@@ -16,6 +22,7 @@ app.setApplicationName("Alchromy")
 app.setStyle("Fusion")
 
 # Now use a palette to switch to dark colors:
+
 palette = QPalette()
 palette.setColor(QPalette.Window, QColor(53, 53, 53))
 palette.setColor(QPalette.WindowText, Qt.white)
@@ -30,11 +37,13 @@ palette.setColor(QPalette.BrightText, Qt.red)
 palette.setColor(QPalette.Link, QColor(42, 130, 218))
 palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
 palette.setColor(QPalette.HighlightedText, Qt.black)
-app.setPalette(palette)
+#app.setPalette(palette)
+
 
 # Main window class from https://github.com/pyqt/examples/blob/_/src/09%20Qt%20dark%20theme/main.py
 class MainWindow(QMainWindow):
     def closeEvent(self, e):
+        return
         if not text.document().isModified():
             return
         answer = QMessageBox.question(
@@ -48,7 +57,7 @@ class MainWindow(QMainWindow):
             e.ignore()
 
 # Create a main window to house everything
-window = MainWindow()
+window = QMainWindow()
 
 ###############
 ### MENUBAR ###
@@ -94,12 +103,15 @@ close.triggered.connect(window.close)
 # Preferences
 pref_action = QAction("&Preferences")
 
+# Debug setting
+debug_action = QAction(text='&Debug mode', checkable=True, checked=False)
+
 # About pane
 def show_about_dialog():
     text = '<center>' \
            '<h1>Alchromy</h1>' \
            '&#8291;' \
-           '<img src="alch.png", width="50">' \
+           '<img src="lib/alch_flask_icon.gif", width="50">' \
            '</center>' \
            '<p>Version x.xx<br/>' \
            'Copyright &copy;2016-2019 Rich Hickey</p>'
@@ -113,11 +125,13 @@ def launch_FAQ():
 FAQ_action = QAction("&FAQ")
 FAQ_action.triggered.connect(launch_FAQ)
 
+
 # Populate Menubars
 file_menu.addAction(save_action)
 file_menu.addAction(close)
 
 tools_menu.addAction(pref_action)
+tools_menu.addAction(debug_action)
 
 help_menu.addAction(FAQ_action)
 help_menu.addAction(about_action)
@@ -161,18 +175,45 @@ mode_box.currentIndexChanged.connect(mode_change)
 
 # DATA group
 data_group = QGroupBox('Data')
-data_layout = QHBoxLayout()
+data_layout = QVBoxLayout()
+load_line_layout = QHBoxLayout()
+paste_line_layout = QHBoxLayout()
+
 load_button = QPushButton('Load')
 def load_action():
     perm_status.setText("Loading file")
     #status_bar.showMessage("Running!", 2000)
 load_button.clicked.connect(load_action)
 #load_button.underMouse.connect(load_action)
-load_button.setToolTip("tool tip?")
+#load_button.setToolTip("tool tip?")
+def switchToLoad():
+    load_button.setEnabled(True)
+    paste_button.setDisabled(True)
+    
+def switchToPaste():
+    paste_button.setEnabled(True)
+    load_button.setDisabled(True)
+    #load_button.setPalette(QPalette.Text, Qt.red)
+    
 
-data_layout.addWidget(QLabel('From file'))
-data_layout.addWidget(load_button)
+load_file_radio = QRadioButton('From file', checked=True)
+load_file_radio.clicked.connect(switchToLoad)
+load_line_layout.addWidget(load_file_radio)
+load_line_layout.addWidget(load_button)
+
+
+paste_button = QPushButton('Input', enabled=False)
+paste_data_radio = QRadioButton('Paste data')
+paste_data_radio.clicked.connect(switchToPaste)
+paste_line_layout.addWidget(paste_data_radio)
+paste_line_layout.addWidget(paste_button)
+
+data_layout.addLayout(load_line_layout)
+data_layout.addLayout(paste_line_layout)
+
 data_group.setLayout(data_layout)
+
+
 
 # OPTIONS group
 opt_group = QGroupBox('Options')
