@@ -3,10 +3,13 @@
 import sys
 from PyQt5.QtWidgets import *
 #QWidget,QCheckBox,QComboBox,QCommandLinkButton,QDateEdit,QDateTimeEdit,QTimeEdit,QDial,QFocusFrame,QFontComboBox,QLabel,QLCDNumber,QLineEdit,QMenu,QProgressBar,QPushButton,QRadioButton,QScrollArea,QScrollBar,QSizeGrip,QSlider,QDoubleSpinBox,QSpinBox
-from PyQt5.QtGui import QKeySequence, QPalette, QColor, QDesktopServices
-
+from PyQt5.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QWindow, QIcon
+#from PyQt5.QtChart import *
 from PyQt5.QtCore import Qt, QUrl, QCoreApplication
+# For plot test
+import pandas as pd
 
+filePath = "test_3.dat"
 #app = QApplication([])
 app = QCoreApplication.instance()
 if app is None:
@@ -23,22 +26,26 @@ app.setStyle("Fusion")
 
 # Now use a palette to switch to dark colors:
 
-palette = QPalette()
-palette.setColor(QPalette.Window, QColor(53, 53, 53))
-palette.setColor(QPalette.WindowText, Qt.white)
-palette.setColor(QPalette.Base, QColor(25, 25, 25))
-palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-palette.setColor(QPalette.ToolTipBase, Qt.white)
-palette.setColor(QPalette.ToolTipText, Qt.white)
-palette.setColor(QPalette.Text, Qt.white)
-palette.setColor(QPalette.Button, QColor(53, 53, 53))
-palette.setColor(QPalette.ButtonText, Qt.white)
-palette.setColor(QPalette.BrightText, Qt.red)
-palette.setColor(QPalette.Link, QColor(42, 130, 218))
-palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-palette.setColor(QPalette.HighlightedText, Qt.black)
-#app.setPalette(palette)
+lightmode = QPalette()
+darkmode = QPalette()
 
+darkmode.setColor(QPalette.Window, QColor(53, 53, 53))
+darkmode.setColor(QPalette.WindowText, Qt.white)
+darkmode.setColor(QPalette.Base, QColor(25, 25, 25))
+darkmode.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+darkmode.setColor(QPalette.ToolTipBase, Qt.white)
+darkmode.setColor(QPalette.ToolTipText, Qt.white)
+darkmode.setColor(QPalette.Text, Qt.white)
+darkmode.setColor(QPalette.Button, QColor(53, 53, 53))
+darkmode.setColor(QPalette.ButtonText, Qt.white)
+darkmode.setColor(QPalette.BrightText, Qt.red)
+darkmode.setColor(QPalette.Link, QColor(42, 130, 218))
+darkmode.setColor(QPalette.Highlight, QColor(42, 130, 218))
+darkmode.setColor(QPalette.HighlightedText, Qt.black)
+
+darkmode.setColor(QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
+
+app.setPalette(darkmode)
 
 # Main window class from https://github.com/pyqt/examples/blob/_/src/09%20Qt%20dark%20theme/main.py
 class MainWindow(QMainWindow):
@@ -56,8 +63,15 @@ class MainWindow(QMainWindow):
         elif answer & QMessageBox.Cancel:
             e.ignore()
 
+#class LoadWindow(QWindow):
+    #def __init__(self):
+        #self.raise()
+        
+    
+
 # Create a main window to house everything
 window = QMainWindow()
+window.setWindowIcon(QIcon("lib/alch_flask_icon.ico"))
 
 ###############
 ### MENUBAR ###
@@ -106,19 +120,27 @@ pref_action = QAction("&Preferences")
 # Debug setting
 debug_action = QAction(text='&Debug mode', checkable=True, checked=False)
 
+def changetheme():
+    app.setPalette(lightmode)
+    window.repaint()
+    
+theme_action = QAction(text='&Theme', checkable=True, checked=False)
+theme_action.triggered.connect(changetheme)
+
 # About pane
 def show_about_dialog():
     text = '<center>' \
            '<h1>Alchromy</h1>' \
            '&#8291;' \
-           '<img src="lib/alch_flask_icon.gif", width="50">' \
            '</center>' \
            '<p>Version x.xx<br/>' \
-           'Copyright &copy;2016-2019 Rich Hickey</p>'
+           'Copyright &copy; 2016-2019 Rich Hickey</p>'
     QMessageBox.about(window, "Alchromy v. x.xx", text)
 about_action = QAction("&About")
 about_action.triggered.connect(show_about_dialog)
 
+           #'<img src="lib/alch_flask_icon.gif", width="50">' \
+           
 # FAQ action
 def launch_FAQ():
     QDesktopServices.openUrl(QUrl("http://www.alchromy.com/"))
@@ -132,6 +154,7 @@ file_menu.addAction(close)
 
 tools_menu.addAction(pref_action)
 tools_menu.addAction(debug_action)
+#tools_menu.addAction(theme_action)
 
 help_menu.addAction(FAQ_action)
 help_menu.addAction(about_action)
@@ -165,6 +188,7 @@ def mode_change():
     mode_label.setText(mode_desc[mode_box.currentIndex()])
 
 mode_box.addItems(mode_list)
+mode_box.setStatusTip("Change the operation mode.")
 mode_layout = QHBoxLayout()
 mode_layout.addWidget(mode_box)
 mode_layout.addWidget(mode_label, 1)
@@ -173,19 +197,37 @@ mode_group.setLayout(mode_layout)
 #self.connect(self.command,QtCore.SIGNAL('activated(QString)'),self.optionopen)
 mode_box.currentIndexChanged.connect(mode_change)
 
+##### Load window #####
+
+load_window = QWidget()
+load_layout = QVBoxLayout()
+load_layout.addWidget(QLabel('Load window screen'))
+load_layout.addWidget(QListWidget())
+#prev_chart = QChartView()
+load_window.setLayout(load_layout)
+
+#######################
+
+
+
 # DATA group
 data_group = QGroupBox('Data')
 data_layout = QVBoxLayout()
 load_line_layout = QHBoxLayout()
 paste_line_layout = QHBoxLayout()
 
-load_button = QPushButton('Load')
 def load_action():
     perm_status.setText("Loading file")
-    #status_bar.showMessage("Running!", 2000)
+    # TEMPORARY LOAD & PLOT TEST
+    df = pd.read_csv(filePath,'\t')
+    df.rename(columns={df.columns[0]:'nm'}, inplace=True)
+    dataCols = list(df.drop('nm',axis=1))
+    load_window.show()
+    
+load_button = QPushButton('Load')
 load_button.clicked.connect(load_action)
-#load_button.underMouse.connect(load_action)
-#load_button.setToolTip("tool tip?")
+
+
 def switchToLoad():
     load_button.setEnabled(True)
     paste_button.setDisabled(True)
@@ -198,13 +240,31 @@ def switchToPaste():
 
 load_file_radio = QRadioButton('From file', checked=True)
 load_file_radio.clicked.connect(switchToLoad)
+load_file_radio.setStatusTip("Load spectra from a data file.")
+
 load_line_layout.addWidget(load_file_radio)
 load_line_layout.addWidget(load_button)
 
+##### Paste window #####
+
+paste_window = QWidget()
+paste_layout = QVBoxLayout()
+paste_layout.addWidget(QLabel("Must be whitespace delimited"))
+paste_layout.addWidget(QTextEdit())
+paste_window.setLayout(paste_layout)
+
+def paste_action():
+    perm_status.setText("Paste in data")
+    paste_window.show()
+#######################
 
 paste_button = QPushButton('Input', enabled=False)
+paste_button.clicked.connect(paste_action)
+
 paste_data_radio = QRadioButton('Paste data')
+paste_data_radio.setStatusTip("Load spectra from copy/pasted data.")
 paste_data_radio.clicked.connect(switchToPaste)
+
 paste_line_layout.addWidget(paste_data_radio)
 paste_line_layout.addWidget(paste_button)
 
@@ -218,16 +278,21 @@ data_group.setLayout(data_layout)
 # OPTIONS group
 opt_group = QGroupBox('Options')
 opt_layout = QVBoxLayout()
-opt_layout.addWidget(QCheckBox('Normalize'))
-opt_layout.addWidget(QCheckBox('Wavelength'))
+norm_box = QCheckBox('Normalize')
+norm_box.setStatusTip('Force minimum absorbance of spectra to 0 by subtraction.')
+wave_box = QCheckBox('Manual wavelength')
+wave_box.setStatusTip('Specify custom wavelengths for measurement.')
+opt_layout.addWidget(norm_box)
+opt_layout.addWidget(wave_box)
 opt_layout.addWidget(QCheckBox('Etc'))
 opt_group.setLayout(opt_layout)
 
 # Define a working button
 run_button = QPushButton('Run')
+run_button.setStatusTip('Begin analysis with selected settings.')
 def run_action():
-    #temp_status.setText("Running!")
-    status_bar.showMessage("Running!", 2000)
+    perm_status.setText("Running!")
+    #status_bar.showMessage("Running!", 2000)
 run_button.clicked.connect(run_action)
 
 
