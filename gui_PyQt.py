@@ -1,11 +1,11 @@
 # PyQt5==5.9.2
 
 import sys
-from PyQt5.QtWidgets import *
+from PySide2.QtWidgets import *
 #QWidget,QCheckBox,QComboBox,QCommandLinkButton,QDateEdit,QDateTimeEdit,QTimeEdit,QDial,QFocusFrame,QFontComboBox,QLabel,QLCDNumber,QLineEdit,QMenu,QProgressBar,QPushButton,QRadioButton,QScrollArea,QScrollBar,QSizeGrip,QSlider,QDoubleSpinBox,QSpinBox
-from PyQt5.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QWindow, QIcon
-#from PyQt5.QtChart import *
-from PyQt5.QtCore import Qt, QUrl, QCoreApplication
+from PySide2.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QIcon
+from PySide2.QtCharts import *
+from PySide2.QtCore import Qt, QUrl, QCoreApplication
 # For plot test
 import pandas as pd
 
@@ -200,10 +200,12 @@ mode_box.currentIndexChanged.connect(mode_change)
 ##### Load window #####
 
 load_window = QWidget()
+prev_chart = QtCharts.QChartView()
+
 load_layout = QVBoxLayout()
 load_layout.addWidget(QLabel('Load window screen'))
 load_layout.addWidget(QListWidget())
-#prev_chart = QChartView()
+load_layout.addWidget(prev_chart)
 load_window.setLayout(load_layout)
 
 #######################
@@ -219,9 +221,9 @@ paste_line_layout = QHBoxLayout()
 def load_action():
     perm_status.setText("Loading file")
     # TEMPORARY LOAD & PLOT TEST
-    df = pd.read_csv(filePath,'\t')
-    df.rename(columns={df.columns[0]:'nm'}, inplace=True)
-    dataCols = list(df.drop('nm',axis=1))
+    #df = pd.read_csv(filePath,'\t')
+    #df.rename(columns={df.columns[0]:'nm'}, inplace=True)
+    #dataCols = list(df.drop('nm',axis=1))
     load_window.show()
     
 load_button = QPushButton('Load')
@@ -279,7 +281,7 @@ data_group.setLayout(data_layout)
 opt_group = QGroupBox('Options')
 opt_layout = QVBoxLayout()
 norm_box = QCheckBox('Normalize')
-norm_box.setStatusTip('Force minimum absorbance of spectra to 0 by subtraction.')
+norm_box.setStatusTip('Set minimum absorbance of spectra to 0 by subtraction.')
 wave_box = QCheckBox('Manual wavelength')
 wave_box.setStatusTip('Specify custom wavelengths for measurement.')
 opt_layout.addWidget(norm_box)
