@@ -2,14 +2,15 @@
 
 import sys
 from PySide2.QtWidgets import *
-#QWidget,QCheckBox,QComboBox,QCommandLinkButton,QDateEdit,QDateTimeEdit,QTimeEdit,QDial,QFocusFrame,QFontComboBox,QLabel,QLCDNumber,QLineEdit,QMenu,QProgressBar,QPushButton,QRadioButton,QScrollArea,QScrollBar,QSizeGrip,QSlider,QDoubleSpinBox,QSpinBox
+# QWidget,QCheckBox,QComboBox,QCommandLinkButton,QDateEdit,QDateTimeEdit,QTimeEdit,QDial,QFocusFrame,QFontComboBox,QLabel,QLCDNumber,QLineEdit,QMenu,QProgressBar,QPushButton,QRadioButton,QScrollArea,QScrollBar,QSizeGrip,QSlider,QDoubleSpinBox,QSpinBox
 from PySide2.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QIcon
-from PySide2.QtCharts import *
+# from PySide2.QtCharts import *
 from PySide2.QtCore import Qt, QUrl, QCoreApplication
-# For plot test
-import pandas as pd
 
-filePath = "test_3.dat"
+# Internal imports
+# import alch_load
+import alch_view
+
 #app = QApplication([])
 app = QCoreApplication.instance()
 if app is None:
@@ -63,10 +64,6 @@ class MainWindow(QMainWindow):
         elif answer & QMessageBox.Cancel:
             e.ignore()
 
-#class LoadWindow(QWindow):
-    #def __init__(self):
-        #self.raise()
-        
     
 
 # Create a main window to house everything
@@ -97,7 +94,6 @@ file_path = None
 save_action = QAction("&Save")
 
 def save():
-    pass
     """
     if file_path is None:
         save_as()
@@ -106,6 +102,9 @@ def save():
             f.write(text.toPlainText())
         text.document().setModified(False)
     """
+    pass
+
+
 save_action.triggered.connect(save)
 save_action.setShortcut(QKeySequence.Save)
 
@@ -194,23 +193,10 @@ mode_layout.addWidget(mode_box)
 mode_layout.addWidget(mode_label, 1)
 mode_group.setLayout(mode_layout)
 
-#self.connect(self.command,QtCore.SIGNAL('activated(QString)'),self.optionopen)
 mode_box.currentIndexChanged.connect(mode_change)
 
-##### Load window #####
-
-load_window = QWidget()
-prev_chart = QtCharts.QChartView()
-
-load_layout = QVBoxLayout()
-load_layout.addWidget(QLabel('Load window screen'))
-load_layout.addWidget(QListWidget())
-load_layout.addWidget(prev_chart)
-load_window.setLayout(load_layout)
-
-#######################
-
-
+# Create hidden load window
+load_window = alch_view.LoadWindow()
 
 # DATA group
 data_group = QGroupBox('Data')
@@ -218,14 +204,11 @@ data_layout = QVBoxLayout()
 load_line_layout = QHBoxLayout()
 paste_line_layout = QHBoxLayout()
 
+
 def load_action():
-    perm_status.setText("Loading file")
     # TEMPORARY LOAD & PLOT TEST
-    #df = pd.read_csv(filePath,'\t')
-    #df.rename(columns={df.columns[0]:'nm'}, inplace=True)
-    #dataCols = list(df.drop('nm',axis=1))
     load_window.show()
-    
+
 load_button = QPushButton('Load')
 load_button.clicked.connect(load_action)
 
