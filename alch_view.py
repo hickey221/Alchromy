@@ -5,37 +5,8 @@ from PySide2.QtWidgets import (QAction, QApplication, QHBoxLayout, QHeaderView,
                                QMainWindow, QSizePolicy, QTableView, QWidget)
 from PySide2.QtCharts import QtCharts
 
-# https://stackoverflow.com/questions/31475965/fastest-way-to-populate-qtableview-from-pandas-data-frame
+import pd_to_model
 import alch_load
-
-class PandasModel(QAbstractTableModel):
-    """
-    Class to populate a table view with a pandas dataframe
-    Usage:
-    model = PandasModel(your_pandas_data_frame)
-    your_tableview.setModel(model)
-    """
-    def __init__(self, data, parent=None):
-        QAbstractTableModel.__init__(self, parent)
-        self._data = data
-
-    def rowCount(self, parent=None):
-        return len(self._data.values)
-
-    def columnCount(self, parent=None):
-        return self._data.columns.size
-
-    def data(self, index, role=Qt.DisplayRole):
-        if index.isValid():
-            if role == Qt.DisplayRole:
-                return str(self._data.values[index.row()][index.column()])
-        return None
-
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self._data.columns[col]
-        return None
-
 
 class Graph(QWidget):
     def __init__(self):
@@ -102,7 +73,7 @@ class Graph(QWidget):
         # Empty the line series if it's already in use
         if self.series:
             self.series.clear()
-        self.model = PandasModel(df)
+        self.model = pd_to_model.PandasModel(df)
         self.add_series()
         self.series.attachAxis(self.axis_x)
         self.series.attachAxis(self.axis_y)
@@ -128,10 +99,6 @@ class LoadWindow(QWidget):
         self.waves_list = QListWidget()
 
         self.load_label = QLabel('Load window screen')
-        #size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        #size.setHorizontalStretch(0)
-        #size.setHorizontalStretch(0)
-        #self.load_label.setSizePolicy(size)
 
         # Browse button & action
         self.browse_button = QPushButton('Browse')
@@ -147,9 +114,8 @@ class LoadWindow(QWidget):
         self.setLayout(self.layout)
 
     def browse_button_action(self):
-        file_name = ()
         file_name = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
         if file_name[0]:
-            print("file_name looks like: ", file_name)
+            # print("file_name looks like: ", file_name)
             df = alch_load.load(file_name[0])
             self.graph.setModel(df)

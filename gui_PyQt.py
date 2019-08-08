@@ -8,7 +8,6 @@ from PySide2.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QIco
 from PySide2.QtCore import Qt, QUrl, QCoreApplication
 
 # Internal imports
-# import alch_load
 import alch_view
 
 #app = QApplication([])
