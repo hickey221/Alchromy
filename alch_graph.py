@@ -20,6 +20,10 @@ class Graph(QWidget):
         self.chart_view = QtCharts.QChartView(self.chart)
         self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
 
+        # Placeholder axes
+        self.axis_x = QtCharts.QValueAxis()
+        self.axis_y = QtCharts.QValueAxis()
+
         # Left layout
         self.main_layout = QHBoxLayout()
         size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -35,10 +39,10 @@ class Graph(QWidget):
         self.setLayout(self.main_layout)
 
     def update_axes(self):
-        # Setting X-axis
-        #if self.axis_x and self.axis_y:
-        #    self.chart.removeAxis(self.axis_x)
-        #    self.chart.removeAxis(self.axis_y)
+        # Remove old junk
+        self.chart.removeAxis(self.axis_x)
+        self.chart.removeAxis(self.axis_y)
+        # Set X-axis
         self.axis_x = QtCharts.QValueAxis()
         self.axis_x.setTickCount(6)
         self.axis_x.setLabelFormat("%.0f")
@@ -59,15 +63,12 @@ class Graph(QWidget):
         :return:
         """
         # Empty the line series if it's already in use
-        if self.series:
-            self.chart.removeAllSeries()
-            # self.series.clear()
+        self.chart.removeAllSeries()
         if df is None or df.empty:
             print("no df found, aborting")
             self.model = None
             return
         self.model = pd_to_model.PandasModel(df)
-        print("proceeding to add series")
         # for each column
         for i in range(1, self.model.columnCount()):
             self.add_series(i)
@@ -86,3 +87,4 @@ class Graph(QWidget):
                 self.series.append(x, y)
 
         self.chart.addSeries(self.series)
+        self.update_axes()
