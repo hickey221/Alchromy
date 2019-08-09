@@ -27,12 +27,15 @@ def load(filePath):
 
         # Clean up the dataframe
         # Bug fix for duplicate 2nd column name in some Olis-produced files
+        #print("Loaded columns:", df.columns)
         if df.columns[0] == '0' and df.columns[1] == '0.1':
-            df.rename(columns={df.columns[1]:'0'}, inplace=True)
+            df.rename(columns={df.columns[1]: '0'}, inplace=True)
         # Rename first column as 'nm' for wavelengths
-        df.rename(columns={df.columns[0]:'nm'}, inplace=True)
+        #df.rename(columns={df.columns[0]: 'nm'}, inplace=True)
+        df.columns.values[0] = 'nm'
         # Treat 'nm' as the index column - may break older code!
-        df.set_index('nm', inplace=True, drop=False)
+        #df.set_index('nm', inplace=True, drop=False)
+        print("Saving columns:", df.columns)
         # Add stuff to the listBox
         #cols = list(df.drop('nm',axis=1)) # Data col names
     else:

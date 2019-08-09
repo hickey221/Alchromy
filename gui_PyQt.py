@@ -8,7 +8,7 @@ from PySide2.QtGui import QKeySequence, QPalette, QColor, QDesktopServices, QIco
 from PySide2.QtCore import Qt, QUrl, QCoreApplication
 
 # Internal imports
-import alch_view
+import alch_load_window
 
 #app = QApplication([])
 app = QCoreApplication.instance()
@@ -195,7 +195,7 @@ mode_group.setLayout(mode_layout)
 mode_box.currentIndexChanged.connect(mode_change)
 
 # Create hidden load window
-load_window = alch_view.LoadWindow()
+load_window = alch_load_window.LoadWindow()
 
 # DATA group
 data_group = QGroupBox('Data')
