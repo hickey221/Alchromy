@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import *
-from PySide2.QtCore import  Qt
+from PySide2.QtCore import Qt
 
 import alch_import
 import alch_graph
@@ -19,8 +19,8 @@ class LoadWindow(QWidget):
         self.browse_button.clicked.connect(self.browse_button_action)
 
         # Browse button & action
-        self.check_button = QPushButton('Check')
-        self.check_button.clicked.connect(self.update_wave_list)
+        self.check_button = QPushButton('Check/uncheck all')
+        self.check_button.clicked.connect(self.check_button_action)
 
         # Construct layout
         self.layout = QVBoxLayout()
@@ -48,19 +48,22 @@ class LoadWindow(QWidget):
 
     def make_wave_list(self, df):
         # Make a list of cols from the df loaded
-        # Make a list widget
-        # Populate the list widget, each should have a checkbox
         self.waves_list.clear()
         for col in df.columns[1:]:
+            # Populate the list widget, each should have a checkbox
             newitem = QListWidgetItem(col, self.waves_list)
             newitem.setCheckState(Qt.CheckState.Checked)
 
+    def get_checked_items(self, list_widget):
+        checked_index = []
+        for i in range(list_widget.count()):
+            if list_widget.item(i).checkState() == Qt.CheckState.Checked:
+                checked_index.append(i)
+        return checked_index
+
     def update_wave_list(self):
         # Check to see which list items are checked
-        checked_index = []
-        for i in range(self.waves_list.count()):
-            if self.waves_list.item(i).checkState() == Qt.CheckState.Checked:
-                checked_index.append(i)
+        checked_index = self.get_checked_items(self.waves_list)
                 # print("Adding", self.waves_list.item(i))
         # Pass those items back to Graph and update the plot
         # Adjusting index by 1 to account for skipped nm column
@@ -78,3 +81,17 @@ class LoadWindow(QWidget):
             self.df = alch_import.load(file_name[0])
             self.graph.setModel(self.df)
             self.make_wave_list(self.df)
+
+    def check_button_action(self):
+        checked_index = self.get_checked_items(self.waves_list)
+        if len(checked_index) == self.waves_list.count():
+            # uncheck all
+            new_state = Qt.CheckState.Unchecked
+        else:
+            # check all
+            new_state = Qt.CheckState.Checked
+        # Apply to all
+        for i in range(self.waves_list.count()):
+            self.waves_list.item(i).setCheckState(new_state)
+        # Call an update
+        self.update_wave_list()

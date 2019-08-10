@@ -47,8 +47,9 @@ darkmode.setColor(QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
 
 app.setPalette(darkmode)
 
-# Main window class from https://github.com/pyqt/examples/blob/_/src/09%20Qt%20dark%20theme/main.py
+
 class MainWindow(QMainWindow):
+    # Main window class from https://github.com/pyqt/examples/blob/_/src/09%20Qt%20dark%20theme/main.py
     def closeEvent(self, e):
         return
         if not text.document().isModified():
@@ -63,7 +64,6 @@ class MainWindow(QMainWindow):
         elif answer & QMessageBox.Cancel:
             e.ignore()
 
-    
 
 # Create a main window to house everything
 window = QMainWindow()
@@ -125,7 +125,7 @@ def changetheme():
 theme_action = QAction(text='&Theme', checkable=True, checked=False)
 theme_action.triggered.connect(changetheme)
 
-# About pane
+
 def show_about_dialog():
     text = '<center>' \
            '<h1>Alchromy</h1>' \
@@ -136,10 +136,8 @@ def show_about_dialog():
     QMessageBox.about(window, "Alchromy v. x.xx", text)
 about_action = QAction("&About")
 about_action.triggered.connect(show_about_dialog)
-
-           #'<img src="lib/alch_flask_icon.gif", width="50">' \
            
-# FAQ action
+
 def launch_FAQ():
     QDesktopServices.openUrl(QUrl("http://www.alchromy.com/"))
 FAQ_action = QAction("&FAQ")
@@ -181,6 +179,7 @@ mode_desc = ("Analyze one spectrum at a time, or a batch of several spectra sepa
              "Treat multiple spectra as time course data.")
 mode_box = QComboBox()
 mode_label = QLabel(mode_desc[0])
+
 def mode_change():
     # Get the appropriate description of the selected mode
     mode_label.setText(mode_desc[mode_box.currentIndex()])
@@ -193,6 +192,8 @@ mode_layout.addWidget(mode_label, 1)
 mode_group.setLayout(mode_layout)
 
 mode_box.currentIndexChanged.connect(mode_change)
+
+# Create an Alch instance
 
 # Create hidden load window
 load_window = alch_load_window.LoadWindow()
