@@ -9,6 +9,7 @@ from PySide2.QtCore import Qt, QUrl, QCoreApplication
 
 # Internal imports
 import alch_load_window
+import alchClass
 
 #app = QApplication([])
 app = QCoreApplication.instance()

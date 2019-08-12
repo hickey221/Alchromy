@@ -1,5 +1,6 @@
 from PySide2.QtWidgets import *
 from PySide2.QtCore import Qt
+from PySide2.QtGui import QIcon
 
 import alch_import
 import alch_graph
@@ -7,12 +8,16 @@ import alch_graph
 
 class LoadWindow(QWidget):
     def __init__(self):
+        # Establish some window stuff
         QWidget.__init__(self)
+        self.resize(800, 400)
+        self.setWindowIcon(QIcon("lib/alch_flask_icon.ico"))
+
+        # Make some widgets
         self.graph = alch_graph.Graph()
         self.waves_list = QListWidget()
-        self.waves_list.itemClicked.connect(self.update_wave_list)
-
-        self.load_label = QLabel('Load window screen')
+        self.waves_list.itemChanged.connect(self.update_wave_list)
+        # self.load_label = QLabel('Load window screen')
 
         # Browse button & action
         self.browse_button = QPushButton('Select file')
@@ -29,15 +34,16 @@ class LoadWindow(QWidget):
         bottom_button_bar = QHBoxLayout()
 
         # First row: Load buttons
-        top_button_bar.addWidget(self.load_label, stretch=0)
+        #top_button_bar.addWidget(self.load_label, stretch=0)
         top_button_bar.addWidget(self.browse_button, stretch=0)
+        top_button_bar.addWidget(QLabel(''), 1)  # Spacer
         # Second row: wave list and graph plot
         graph_bar.addWidget(self.waves_list)
         # self.waves_list.clicked.connect(self.make_wave_list)
         graph_bar.addWidget(self.graph, stretch=1)
         # Third row: Save button
         bottom_button_bar.addWidget(self.check_button, stretch=0)
-        bottom_button_bar.addWidget(QLabel(''), 1)
+        bottom_button_bar.addWidget(QLabel(''), 1)  # Spacer
         bottom_button_bar.addWidget(QPushButton('Save'))
 
         # Assemble the layout and apply it
