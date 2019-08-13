@@ -24,6 +24,9 @@
 **/data
 **/__pycache__
 **/output
+**/temp
+**/venv
+**/.*
 
 # Logs and databases #
 ######################
