@@ -2,8 +2,8 @@ from PySide2.QtWidgets import *
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QIcon
 
-import alch_import
-import alch_graph
+from lib import alch_import
+from lib import alch_graph
 
 
 class LoadWindow(QWidget):
@@ -11,7 +11,7 @@ class LoadWindow(QWidget):
         # Establish some window stuff
         QWidget.__init__(self)
         self.resize(800, 400)
-        self.setWindowIcon(QIcon("lib/alch_flask_icon.ico"))
+        self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
 
         # Make some widgets
         self.graph = alch_graph.Graph()

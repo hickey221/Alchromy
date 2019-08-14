@@ -3,7 +3,7 @@ from PySide2.QtCore import Qt
 from PySide2 import QtGui
 from PySide2.QtCharts import QtCharts
 
-import pd_to_model
+from lib import pd_to_model
 
 
 class Graph(QWidget):
