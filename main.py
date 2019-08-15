@@ -51,6 +51,64 @@ app.setPalette(darkmode)
 
 class MainWindow(QMainWindow):
     # Main window class from https://github.com/pyqt/examples/blob/_/src/09%20Qt%20dark%20theme/main.py
+    def __init__(self):
+        QMainWindow.__init__(self)
+        self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
+        self.createMenuBar()
+
+    def createMenuBar(self):
+        # Declare menubar
+        file_menu = self.menuBar().addMenu("&File")
+        tools_menu = self.menuBar().addMenu("&Tools")
+        help_menu = self.menuBar().addMenu("&Help")
+
+        # Declare status bar
+        status_bar = QStatusBar()
+        temp_status = QLabel("")
+        bar_space = QLabel("")
+        perm_status = QLabel("Initialized")
+
+        status_bar.addWidget(temp_status)
+        status_bar.addWidget(bar_space, 1)
+        status_bar.addPermanentWidget(perm_status)
+
+        # Save function
+        self.save_file_path = None
+        self.actions_save = QAction("&Save")
+        self.actions_save.triggered.connect(self.save)
+        self.actions_save.setShortcut(QKeySequence.Save)
+
+        # Populate Menubars
+        file_menu.addAction(self.actions_save)
+        file_menu.addAction(close)
+
+        tools_menu.addAction(pref_action)
+        tools_menu.addAction(debug_action)
+        #tools_menu.addAction(theme_action)
+
+        help_menu.addAction(FAQ_action)
+        help_menu.addAction(about_action)
+        # Close function
+        close = QAction("&Close")
+        close.triggered.connect(window.close)
+
+        # Preferences
+        pref_action = QAction("&Preferences")
+
+        # Debug setting
+        debug_action = QAction(text='&Debug mode', checkable=True, checked=False)
+
+    def save(self):
+        """
+        if file_path is None:
+            save_as()
+        else:
+            with open(save_file_path, "w") as f:
+                f.write(text.toPlainText())
+            text.document().setModified(False)
+        """
+        pass
+
     def closeEvent(self, e):
         return
         if not text.document().isModified():
@@ -67,57 +125,8 @@ class MainWindow(QMainWindow):
 
 
 # Create a main window to house everything
-window = QMainWindow()
-window.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
+window = MainWindow()
 
-###############
-### MENUBAR ###
-###############
-
-# Declare menubars
-file_menu = window.menuBar().addMenu("&File")
-tools_menu = window.menuBar().addMenu("&Tools")
-help_menu = window.menuBar().addMenu("&Help")
-
-# Declare status bar
-status_bar = QStatusBar()
-temp_status = QLabel("")
-bar_space = QLabel("")
-perm_status = QLabel("Initialized")
-
-status_bar.addWidget(temp_status)
-status_bar.addWidget(bar_space, 1)
-status_bar.addPermanentWidget(perm_status)
-
-# Save function
-file_path = None
-save_action = QAction("&Save")
-
-def save():
-    """
-    if file_path is None:
-        save_as()
-    else:
-        with open(file_path, "w") as f:
-            f.write(text.toPlainText())
-        text.document().setModified(False)
-    """
-    pass
-
-
-save_action.triggered.connect(save)
-save_action.setShortcut(QKeySequence.Save)
-
-# Close function
-
-close = QAction("&Close")
-close.triggered.connect(window.close)
-
-# Preferences
-pref_action = QAction("&Preferences")
-
-# Debug setting
-debug_action = QAction(text='&Debug mode', checkable=True, checked=False)
 
 def changetheme():
     app.setPalette(lightmode)
@@ -145,16 +154,7 @@ FAQ_action = QAction("&FAQ")
 FAQ_action.triggered.connect(launch_FAQ)
 
 
-# Populate Menubars
-file_menu.addAction(save_action)
-file_menu.addAction(close)
 
-tools_menu.addAction(pref_action)
-tools_menu.addAction(debug_action)
-#tools_menu.addAction(theme_action)
-
-help_menu.addAction(FAQ_action)
-help_menu.addAction(about_action)
 
 
 ####################
