@@ -12,7 +12,8 @@ class LoadWindow(QWidget):
         QWidget.__init__(self)
         self.resize(800, 400)
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
-
+        # Modal setting = this window has focus over MainWindow when shown
+        self.setWindowModality(Qt.ApplicationModal)
         # Make some widgets
         self.graph = alch_graph.Graph()
         self.waves_list = QListWidget()
@@ -26,6 +27,9 @@ class LoadWindow(QWidget):
         # Browse button & action
         self.check_button = QPushButton('Check/uncheck all')
         self.check_button.clicked.connect(self.check_button_action)
+
+        self.button_save = QPushButton('Save')
+        self.button_save.clicked.connect(self.button_save_action)
 
         # Construct layout
         self.layout = QVBoxLayout()
@@ -44,7 +48,7 @@ class LoadWindow(QWidget):
         # Third row: Save button
         bottom_button_bar.addWidget(self.check_button, stretch=0)
         bottom_button_bar.addWidget(QLabel(''), 1)  # Spacer
-        bottom_button_bar.addWidget(QPushButton('Save'))
+        bottom_button_bar.addWidget(self.button_save)
 
         # Assemble the layout and apply it
         self.layout.addLayout(top_button_bar)
@@ -66,6 +70,9 @@ class LoadWindow(QWidget):
             if list_widget.item(i).checkState() == Qt.CheckState.Checked:
                 checked_index.append(i)
         return checked_index
+
+    def button_save_action(self):
+        self.close()
 
     def update_wave_list(self):
         # Check to see which list items are checked

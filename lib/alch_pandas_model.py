@@ -1,5 +1,5 @@
 """
-pd_to_model.py
+alch_pandas_model.py
 Convert pandas dataframe to Qt model
 from https://stackoverflow.com/questions/31475965/fastest-way-to-populate-qtableview-from-pandas-data-frame
 

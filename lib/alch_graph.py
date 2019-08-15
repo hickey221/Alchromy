@@ -3,7 +3,7 @@ from PySide2.QtCore import Qt
 from PySide2 import QtGui
 from PySide2.QtCharts import QtCharts
 
-from lib import pd_to_model
+from lib import alch_pandas_model
 
 
 class Graph(QWidget):
@@ -68,7 +68,7 @@ class Graph(QWidget):
             print("no df found, aborting")
             self.model = None
             return
-        self.model = pd_to_model.PandasModel(df)
+        self.model = alch_pandas_model.PandasModel(df)
         # for each column
         for i in range(1, self.model.columnCount()):
             self.add_series(i)
