@@ -27,28 +27,30 @@ import datetime
 # Internal scripts
 import deconv
 
-#plt.ioff()
-#%%
-class Alch():
+
+class Alch:
     """
     An Alchromy analysis object. Linked to a single data file. Contains objects
     for each result produced.
     """
     def __init__(self):
-        # Initialize parameters
-        self.expPath = None
-        self.refPath = None
-        self.exp = None
+        # Initialize placeholders for pandas data frames
+        self.data = None
         self.ref = None
-        #self.outputPath = outputPath
-        #self.refPath = refPath
+        # self.outputPath = outputPath
+        # self.refPath = refPath
+        self.endpoints = (-np.inf, np.inf)
         self.result_list = []
         # Initialize methods
-        #self.exp, self.dataCols = self.read_file()
-        self.settings = {'Normalize':False,
-                    'Cutoff':(450,700)}
+        # self.exp, self.dataCols = self.read_file()
+        self.settings = {'Normalize': False,
+                         'Cutoff': (450, 700)}
 
-    def identify(self,dataPath):
+    def readyCheck(self):
+
+        pass
+
+    def identify(self, dataPath):
         """
         Establish information about file name and location
         """
@@ -61,135 +63,101 @@ class Alch():
     def generate_result(self):
         """
         Given settings about a run, generate a result object
-
         """
         # Deprec. because we should only have good refs by now
         #workingRef = self.ref.drop(ignored, axis=1)
 
         # Generate a new object instance from result()
-        new_result = Result(self,self.ref)
+        new_result = Result(self, self.ref)
         # Add to results_list
         self.result_list.append(new_result)
 
-    def load_cols(self,df,colType,filePath):
+    def load_cols(self, df, colType, filePath):
         """
         Accept a dataframe of columns of exp data
         """
-        if colType=='exp':
+        if colType == 'exp':
             self.exp = self.clean_data(df)
-            self.dataCols = list(df.drop('nm',axis=1))
+            self.dataCols = list(df.drop('nm', axis=1))
             self.expPath = filePath
             self.identify(self.expPath)
-        elif colType=='ref':
+        elif colType == 'ref':
             self.ref = self.clean_data(df)
-            self.species = list(df.drop('nm',axis=1))
+            self.species = list(df.drop('nm', axis=1))
             self.refPath = filePath
         else:
             warn('Unknown colType')
 
-    def save_pdf(self,fname, fig):
-        doc = PdfPages(fname)
-        fig.savefig(doc, format='pdf')
-        doc.close()
+    def save_pdf(self, fname, fig):
+        # doc = PdfPages(fname)
+        # fig.savefig(doc, format='pdf')
+        # doc.close()
+        pass
 
     def plot_results(self):
         for r in self.result_list:
             fig = r.export()
-            print("Exporting",r.ts.timestamp())
+            print("Exporting", r.ts.timestamp())
             #fig.figure
             #fig.canvas.draw()
             fig.show()
             #ax_list = fig.axes
             #print(ax_list)
-            self.save_pdf('output/'+str(r.ts.timestamp())+'.pdf',fig)
+            self.save_pdf('output/'+str(r.ts.timestamp())+'.pdf', fig)
 
     def list_results(self):
         print("Results list:")
         for r in self.result_list:
             print(r.ts.timestamp())
 
-    def clean_data(self,df):
+    def clean_data(self):
         """
         Trims all data to be within the limits, and removes data points that
         don't match (odds)
         """
-        df = df[df['nm'] >= self.settings['Cutoff'][0]]
-        df = df[df['nm'] <= self.settings['Cutoff'][1]]
+        # Cut anything outside our specified cutoffs
+        self.data = self.data[self.data['nm'] >= self.cutoff[0]]
+        self.data = self.data[self.data['nm'] <= self.cutoff[1]]
+
+        self.ref = self.ref[self.ref['nm'] >= self.cutoff[0]]
+        self.ref = self.ref[self.ref['nm'] <= self.cutoff[1]]
+
+        # Find the index from the ref df
+        ref_idx = self.ref.index.values
+        # Find the index from the data df
+        data_idx = self.data.index.values
+        # Find common points and save this as new index
+        common_idx = np.intersect1d(ref_idx, data_idx)
+        # # Throw error if no overlap
+        if len(common_idx) == 0:
+            warn("No overlap in indices!")
+            return
+        elif len(common_idx) < 10:
+            warn("Not enough points in common.")
+
+        # Slim down each df by the new index
+
         df = df[df['nm'] % 2 == 0]
         return df
+
     def Reset(self):
         """
         Erases all exp and ref data
         """
-        pass
+        self.data = None
+        self.ref = None
 
-    def read_file(self,filePath):
-        """
-        Deprecated based on use of GUI, but preserved for command line use of
-        alchClass.
-        """
-        _, ext = os.path.splitext(filePath)
-        allowedFiles = ['.dat','.txt','.csv','.xls','.xlsx']
-            # Read in the file
-        print("My extension is",ext)
-        if ext in allowedFiles:
-            if ext in ['.xls','.xlsx']:
-                print("Reading as excel")
-                df = pd.read_excel(filePath)
-            else:
-                print("Reading as csv")
-                df = pd.read_csv(filePath,'\t')
-            # Rename first column as 'nm' for wavelengths
-            df.rename(columns={df.columns[0]:'nm'}, inplace=True)
-            # Bug fix for duplicate 2nd column name in some Olis-produced files
-            if df.columns[1] == '0.1':
-                df.rename(columns={df.columns[1]:'0'}, inplace=True)
 
-            dataCols = list(df.drop('nm',axis=1)) # List of col names besides nm
-            #print('Read '+str(dataCols)+' during read_file()')
-            # New: Officially set first column as index
-            
-            return df, dataCols
-        else:
-            print("Error: File must be of type:",allowedFiles)
-
-    def read_exp_file(self, dataPath):
-        """
-        Deprecated based on use of GUI, but preserved for command line use of
-        alchClass.
-        """
-        self.dataPath = dataPath
-        if self.exp:
-            warn("Exp data already exists")
-        try:
-            self.exp, self.dataCols = self.read_file(self.dataPath)
-            self.exp = self.clean_data(self.exp)
-            self.identify() # Change names to reflect new data
-            print('Read in '+self.dataPath)
-        except:
-                print("Error in reading files, aborting!")
-
-    def read_ref_file(self, refPath):
-        """
-        Deprecated based on use of GUI, but preserved for command line use of
-        alchClass.
-        """
-        self.refPath = refPath
-        print("Refpath is",self.refPath)
-        self.ref, self.species = self.read_file(self.refPath)
-        self.ref = self.clean_data(self.ref)
-
-   #%% Result class
 class Result:
     """
     A result object containing fit data, run parameters, and statistics
     """
-    def __init__(self,owner,ref):
+    def __init__(self, owner, ref):
         self.owner = owner # The Alch instance we belong to
-        self.mode = 'S' # (S)imple, (R)eplicate, (K)inetic
+        self.mode = 'S'  # (S)imple, (R)eplicate, (K)inetic
         self.ts = datetime.datetime.now() # Current time (use .timestamp() for epoch)
-        self.ref = ref # Reference data frame
-        self.refData = self.owner.ref.drop('nm',axis=1) # Remove nm column
+        self.ref = ref  # Reference data frame
+        self.refData = self.owner.ref.drop('nm', axis=1) # Remove nm column
         self.expData = self.owner.exp # Grab data from owner
         self.run_deconv()
         self.do_stats()
@@ -234,7 +202,7 @@ class Result:
         ax.set_ylabel('Absorbance')
 
         # Plot data
-        if self.mode =='R':
+        if self.mode == 'R':
             _min= self.expData.min(axis=1)
             _max = self.expData.max(axis=1)
             ax.fill_between(self.expData['nm'], _min, _max)
@@ -251,24 +219,3 @@ class Result:
         #print(type(fig))
         #plt.show()
         return fig
-
-#%% Execute code
-#if __name__=='__main__':
-if False:
-    from alchClass import Alch # Prevent object from belonging to __main__
-    fname = 'output/A.alch'
-    A = Alch(expPath='data/test.xls',refPath='refspec.dat')
-
-    A.load_exp()
-
-    A.load_ref()
-
-    A.generate_result()
-    A.generate_result()
-
-    A.plot_results()
-    with open(fname, 'wb') as pickle_file:
-        pickle.dump(A, pickle_file)
-
-    #with open(fname, 'rb') as pickle_file:
-        #B = pickle.load(pickle_file)

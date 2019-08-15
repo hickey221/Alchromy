@@ -6,6 +6,7 @@ Takes in file path, returns pandas df
 import os
 import pandas as pd
 
+
 def load(filePath):
     """
     Read in the data from a spreadsheet file. Assumes a header row, and
