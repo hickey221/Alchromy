@@ -12,7 +12,6 @@ def load(filePath):
     Read in the data from a spreadsheet file. Assumes a header row, and
     the first column must contain the x-axis (wavelengths).
     """
-
     _, ext = os.path.splitext(filePath)
 
     allowedFiles = ['.csv', '.dat', '.txt', '.xls', '.xlsx']
@@ -31,14 +30,12 @@ def load(filePath):
         #print("Loaded columns:", df.columns)
         if df.columns[0] == '0' and df.columns[1] == '0.1':
             df.rename(columns={df.columns[1]: '0'}, inplace=True)
-        # Rename first column as 'nm' for wavelengths
+        # Rename first column as the index 'idx'
         #df.rename(columns={df.columns[0]: 'nm'}, inplace=True)
-        df.columns.values[0] = 'nm'
-        # Treat 'nm' as the index column - may break older code!
-        #df.set_index('nm', inplace=True, drop=False)
+        df.columns.values[0] = 'idx'
+        # Treat 'idx' as the official index column
+        df.set_index('idx', inplace=True, drop=False)
         print("Saving columns:", df.columns)
-        # Add stuff to the listBox
-        #cols = list(df.drop('nm',axis=1)) # Data col names
     else:
         print("Error: File must be of type:", allowedFiles)
     return df
