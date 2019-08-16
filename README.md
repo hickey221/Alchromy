@@ -9,6 +9,7 @@ Welcome to Alchromy! This package is designed to perform spectral deconvolution 
 Alchromy requires Python 3 and the following packages:
  * PySide2
  * pandas
+ * xlrd
  * scipy
  * numpy
 
