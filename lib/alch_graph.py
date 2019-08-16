@@ -1,9 +1,10 @@
 from PySide2.QtWidgets import *
 from PySide2.QtCore import Qt
-from PySide2 import QtGui
+from PySide2 import QtGui, QtSvg
 from PySide2.QtCharts import QtCharts
 
 from lib import alch_pandas_model
+# TODO: SVG saving: https://stackoverflow.com/questions/38800759/rendering-qchart-without-qgraphicsview
 
 
 class Graph(QWidget):
