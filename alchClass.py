@@ -25,7 +25,7 @@ from warnings import warn
 import pickle
 import datetime
 # Internal scripts
-import deconv
+from lib import alch_deconv
 
 
 class Alch:
@@ -39,16 +39,23 @@ class Alch:
         self.ref = None
         # self.outputPath = outputPath
         # self.refPath = refPath
+        self.normalize = False
         self.endpoints = (-np.inf, np.inf)
         self.result_list = []
-        # Initialize methods
-        # self.exp, self.dataCols = self.read_file()
-        self.settings = {'Normalize': False,
-                         'Cutoff': (450, 700)}
+        self.ready = self.readyCheck()
 
     def readyCheck(self):
-
-        pass
+        if self.data and self.ref:
+            try:
+                self.clean_data()
+            except:
+                warn("Couldn't clean data")
+                return False
+        else:
+            warn("Do not have both data and reference loaded")
+            return False
+        # Passed all tests
+        return True
 
     def identify(self, dataPath):
         """
@@ -64,11 +71,14 @@ class Alch:
         """
         Given settings about a run, generate a result object
         """
-        # Deprec. because we should only have good refs by now
-        #workingRef = self.ref.drop(ignored, axis=1)
+
+        self.ready = self.readyCheck()
+        if not self.ready:
+            warn("Not ready to run")
+            return
 
         # Generate a new object instance from result()
-        new_result = Result(self, self.ref)
+        new_result = Result(self.data, self.ref)
         # Add to results_list
         self.result_list.append(new_result)
 
@@ -115,30 +125,23 @@ class Alch:
         Trims all data to be within the limits, and removes data points that
         don't match (odds)
         """
-        # Cut anything outside our specified cutoffs
-        self.data = self.data[self.data['nm'] >= self.cutoff[0]]
-        self.data = self.data[self.data['nm'] <= self.cutoff[1]]
-
-        self.ref = self.ref[self.ref['nm'] >= self.cutoff[0]]
-        self.ref = self.ref[self.ref['nm'] <= self.cutoff[1]]
-
         # Find the index from the ref df
         ref_idx = self.ref.index.values
         # Find the index from the data df
         data_idx = self.data.index.values
-        # Find common points and save this as new index
+        # Find common points and save this as the new index
         common_idx = np.intersect1d(ref_idx, data_idx)
-        # # Throw error if no overlap
+        # Cut anything outside our specified cutoffs
+        common_idx = np.array([x for x in common_idx if self.endpoints[0] < x < self.endpoints[1]])
+        # Throw error if no overlap
         if len(common_idx) == 0:
             warn("No overlap in indices!")
             return
-        elif len(common_idx) < 10:
-            warn("Not enough points in common.")
-
+        elif len(common_idx) < 20:
+            warn("Fewer than 20 index points remaining")
         # Slim down each df by the new index
-
-        df = df[df['nm'] % 2 == 0]
-        return df
+        self.data = self.data.loc[common_idx]
+        self.ref = self.ref.loc[common_idx]
 
     def Reset(self):
         """
@@ -153,15 +156,18 @@ class Result:
     A result object containing fit data, run parameters, and statistics
     """
     def __init__(self, owner, ref):
-        self.owner = owner # The Alch instance we belong to
+        self.owner = owner  # The Alch instance we belong to
         self.mode = 'S'  # (S)imple, (R)eplicate, (K)inetic
-        self.ts = datetime.datetime.now() # Current time (use .timestamp() for epoch)
+        self.ts = datetime.datetime.now()  # Current time (use .timestamp() for epoch)
         self.ref = ref  # Reference data frame
-        self.refData = self.owner.ref.drop('nm', axis=1) # Remove nm column
-        self.expData = self.owner.exp # Grab data from owner
+        self.refData = self.owner.ref.drop('nm', axis=1)  # Remove nm column
+        self.expData = self.owner.exp  # Grab data from owner
         self.run_deconv()
         self.do_stats()
         self.export()
+
+    def deconv_single(self):
+        pass
 
     def run_deconv(self):
         """
@@ -169,18 +175,18 @@ class Result:
         reference spectra. Called automaticaly on object creation.
         TODO: Make results text callable externally
         """
-        if self.mode=='S':
+        if self.mode == 'S':
             # In simple case, rename single data column to 'data'
             self.expData.rename(columns={self.expData.columns[1]: 'data'}, inplace=True)
-        if self.mode=='R':
+        if self.mode == 'R':
             # In replicate case, make an average of all data
             self.expData = self.owner.exp[self.owner.dataCols].mean(axis=1)
 
         # Make a call to deconvolution algo, store the results
-        self.coeffs, self.perr = deconv.doFitting(self.refData,self.expData['data'])
+        self.coeffs, self.perr = alch_deconv.doFitting(self.refData, self.expData['data'])
 
         # Get fit data column now that deconvolution is complete
-        self.fit = deconv.func(self.refData.T, *self.coeffs)
+        self.fit = alch_deconv.func(self.refData.T, *self.coeffs)
 
     def do_stats(self):
         """
