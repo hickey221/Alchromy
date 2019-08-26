@@ -52,7 +52,7 @@ class Alch:
                 warn("Couldn't clean data")
                 return False
         else:
-            warn("Do not have both data and reference loaded")
+            # warn("Do not have both data and reference loaded")
             return False
         # Passed all tests
         return True
@@ -78,9 +78,10 @@ class Alch:
             return
 
         # Generate a new object instance from result()
-        new_result = Result(self.data, self.ref)
+        print("Running now [placeholder]")
+        # new_result = Result(self.data, self.ref)
         # Add to results_list
-        self.result_list.append(new_result)
+        # self.result_list.append(new_result)
 
     def load_cols(self, df, colType, filePath):
         """
@@ -125,6 +126,10 @@ class Alch:
         Trims all data to be within the limits, and removes data points that
         don't match (odds)
         """
+        if not self.ref and self.data:
+            warn("Don't have data loaded to clean")
+            return
+        print("continuing with clean")
         # Find the index from the ref df
         ref_idx = self.ref.index.values
         # Find the index from the data df

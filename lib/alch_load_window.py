@@ -72,6 +72,7 @@ class LoadWindow(QWidget):
         return checked_index
 
     def button_save_action(self):
+        # Send the chosen df back to the Alch
         self.close()
 
     def update_wave_list(self):

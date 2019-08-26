@@ -4,7 +4,7 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 
 # Internal imports
-from lib import alch_mode_group, alch_data_group, alch_options_group, alch_menu_bar
+from lib import alch_mode_group, alch_data_group, alch_options_group, alch_menu_bar, alch_class, alch_ref_group
 
 
 class MainWindow(QMainWindow):
@@ -14,6 +14,8 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Create a new log file
         self.statusLog = QLabel("")
+        self.alch = alch_class.Alch()
+        self.logMsg("Alch loaded")
         # Get a menu bar at top of window
         self.menu_bar = alch_menu_bar.MenuBar(self)
         self.setMenuBar(self.menu_bar)
@@ -25,6 +27,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.content)
         self.group_mode = alch_mode_group.ModeGroup(self)
         self.group_data = alch_data_group.DataGroup(self)
+        self.group_ref = alch_ref_group.RefGroup(self)
         self.group_opt = alch_options_group.OptGroup(self)
 
         run_button = QPushButton('Run')
@@ -32,12 +35,25 @@ class MainWindow(QMainWindow):
         run_button.clicked.connect(self.run_action)
 
         # Assemble layout
-        V_layout = QVBoxLayout()
-        V_layout.addWidget(self.group_mode)
-        V_layout.addWidget(self.group_data)
-        V_layout.addWidget(self.group_opt)
-        #V_layout.addWidget(run_button)
-        self.content.setLayout(V_layout)
+        layout_final = QVBoxLayout()
+
+        layout_center = QHBoxLayout()
+        layout_left = QVBoxLayout()
+        layout_right = QVBoxLayout()
+
+        layout_left.addWidget(self.group_data)
+        layout_left.addWidget(self.group_opt)
+        layout_left.addWidget(QLabel(''), 1)
+        layout_right.addWidget(self.group_ref)
+
+        layout_center.addLayout(layout_left)
+        layout_center.addLayout(layout_right)
+
+        layout_final.addWidget(self.group_mode)
+        layout_final.addLayout(layout_center)
+        layout_final.addWidget(run_button)
+
+        self.content.setLayout(layout_final)
 
     def populateStatusBar(self):
         # Declare status bar
@@ -55,7 +71,7 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(msg, 1000)
 
     def logMsg(self, msg):
-        self.statusLog.text(msg)
+        self.statusLog.setText(msg)
         # Record the message in the log file
 
     def save(self):
