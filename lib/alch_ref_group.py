@@ -8,11 +8,7 @@ class RefGroup(QGroupBox):
         QGroupBox.__init__(self, "Reference")
         self.parent = parent  # Refers to the Qt MainWindow
         self.df = None
-        defaultPath = 'ref/default.dat'
-        self.load_ref_file(defaultPath)
         self.list_waves = QListWidget()
-
-        self.populate_list()
         self.final_layout = QVBoxLayout()
 
         self.radio_default = QRadioButton('Default', checked=True)
@@ -26,20 +22,37 @@ class RefGroup(QGroupBox):
         self.button_custom = QPushButton('Load', enabled=False)
 
         self.line_custom = QHBoxLayout()
+        self.line_custom.addWidget(self.radio_default)
         self.line_custom.addWidget(self.radio_custom)
         self.line_custom.addWidget(self.button_custom)
         self.line_custom.addWidget(QLabel(''), 1)
 
-        self.final_layout.addWidget(self.radio_default)
         self.final_layout.addLayout(self.line_custom)
         self.final_layout.addWidget(self.list_waves, 1)
         self.setLayout(self.final_layout)
 
+        self.load_default()
+
     def enable_custom(self):
         self.button_custom.setEnabled(True)
+        self.radio_custom.setChecked(True)
+        self.radio_default.setChecked(False)
 
     def disable_custom(self):
         self.button_custom.setDisabled(True)
+        self.radio_default.setChecked(True)
+        self.radio_custom.setChecked(False)
+
+    def load_default(self):
+        defaultPath = 'ref/default.dat'
+        self.load_ref_file(defaultPath)
+        if self.df is None:
+            print("Unable to load defaults")
+            self.enable_custom()
+            self.radio_default.setDisabled(True)
+            self.radio_default.setStatusTip('Built-in reference spectra \''+defaultPath+'\' not found.')
+            return
+        self.populate_list()
 
     def load_ref_file(self, path):
         try:
@@ -52,7 +65,6 @@ class RefGroup(QGroupBox):
         if self.df is None:
             print("Can't fill list, no df loaded")
             return
-
         self.list_waves.clear()
         for col in self.df.columns[1:]:
             # Populate the list widget, each should have a checkbox
@@ -66,3 +78,18 @@ class RefGroup(QGroupBox):
             if list_widget.item(i).checkState() == Qt.CheckState.Checked:
                 checked_index.append(i)
         return checked_index
+
+    def get_df(self):
+        if self.df is None:
+            print("Can't get df, none loaded")
+            return False
+        # See what waves are checked
+        idx = self.get_checked_items(self.list_waves)
+        # Add the index column back then build the df index
+        df_index = [0]
+        df_index += [x+1 for x in idx]
+        new_df = self.df.iloc[:, df_index]
+        if len(idx) < 1:
+            print("No waves selected")
+            new_df = None
+        return new_df

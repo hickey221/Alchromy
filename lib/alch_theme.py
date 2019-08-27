@@ -20,3 +20,4 @@ class Darkmode(QPalette):
         self.setColor(QPalette.HighlightedText, Qt.black)
 
         self.setColor(QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
+        self.setColor(QPalette.Disabled, QPalette.WindowText, QColor(100, 100, 100))

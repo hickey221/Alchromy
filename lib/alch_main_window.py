@@ -66,6 +66,10 @@ class MainWindow(QMainWindow):
 
     def run_action(self):
         self.showMsg('Running!')
+        self.alch.data = self.group_data.window_load.df
+        self.alch.ref = self.group_ref.get_df()
+        status = self.alch.readyCheck()
+        print("Ready check:", status)
 
     def showMsg(self, msg):
         self.status_bar.showMessage(msg, 1000)

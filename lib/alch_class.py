@@ -45,11 +45,11 @@ class Alch:
         self.ready = self.readyCheck()
 
     def readyCheck(self):
-        if self.data and self.ref:
+        if self.data is not None and self.ref is not None:
             try:
                 self.clean_data()
-            except:
-                warn("Couldn't clean data")
+            except ValueError as e:
+                warn("Couldn't clean data"+str(e))
                 return False
         else:
             # warn("Do not have both data and reference loaded")
@@ -126,8 +126,8 @@ class Alch:
         Trims all data to be within the limits, and removes data points that
         don't match (odds)
         """
-        if not self.ref and self.data:
-            warn("Don't have data loaded to clean")
+        if self.ref is None or self.data is None:
+            warn("Don't have all df loaded to clean")
             return
         print("continuing with clean")
         # Find the index from the ref df
