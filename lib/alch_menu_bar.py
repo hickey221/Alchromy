@@ -34,6 +34,9 @@ class MenuBar(QMenuBar):
         self.action_debug = QAction(text='&Debug mode', checkable=True, checked=False)
         self.action_faq = QAction("&FAQ")
         self.action_faq.triggered.connect(self.launchFAQ)
+        # Viewer shortcut
+        self.action_viewer = QAction('&Viewer')
+        self.action_viewer.triggered.connect(self.parent.window_viewer.show)
 
         # Attach actions to QMenu items
         self.menu_file.addAction(self.action_save)
@@ -41,6 +44,7 @@ class MenuBar(QMenuBar):
 
         self.menu_tools.addAction(self.action_pref)
         self.menu_tools.addAction(self.action_debug)
+        self.menu_tools.addAction(self.action_viewer)
         #menu_tools.addAction(action_theme)
         self.menu_help.addAction(self.action_faq)
         self.menu_help.addAction(self.action_about)

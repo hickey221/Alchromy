@@ -4,7 +4,7 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 
 # Internal imports
-from lib import alch_mode_group, alch_data_group, alch_options_group, alch_menu_bar, alch_class, alch_ref_group
+from lib import alch_mode_group, alch_data_group, alch_options_group, alch_menu_bar, alch_class, alch_ref_group, alch_viewer
 
 
 class MainWindow(QMainWindow):
@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
         self.statusLog = QLabel("")
         self.alch = alch_class.Alch()
         self.logMsg("Alch loaded")
+        self.window_viewer = alch_viewer.ViewerWindow()
         # Get a menu bar at top of window
         self.menu_bar = alch_menu_bar.MenuBar(self)
         self.setMenuBar(self.menu_bar)
