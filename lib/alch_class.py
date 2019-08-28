@@ -9,8 +9,7 @@ AlchClass.py
 Describes the Alch object class. An Alch instance contains a set of data,
 references, and results objects from an Alchromy analysis.
 
-TODO: Should read_file be here? Why not move that to a separate section and
-then send clean dataframes to the Alch instance
+TODO: Change result_list to only be a single result per alch
 
 """
 # External packages
@@ -37,6 +36,8 @@ class Alch:
         # Initialize placeholders for pandas data frames
         self.data = None
         self.ref = None
+        self.mode = None  # 'S'imple, 'R'eplicate, 'K'inetic
+        self.fit = None
         # self.outputPath = outputPath
         # self.refPath = refPath
         self.normalize = False
@@ -57,70 +58,6 @@ class Alch:
         # Passed all tests
         return True
 
-    def identify(self, dataPath):
-        """
-        Establish information about file name and location
-        """
-        self.dirName = os.path.dirname(dataPath)
-        self.fullName = os.path.basename(dataPath)
-        self.simpleName, self.ext = os.path.splitext(self.fullName)
-        #if name:
-            #self.nickName = name
-
-    def generate_result(self):
-        """
-        Given settings about a run, generate a result object
-        """
-
-        self.ready = self.readyCheck()
-        if not self.ready:
-            warn("Not ready to run")
-            return
-
-        # Generate a new object instance from result()
-        print("Running now [placeholder]")
-        # new_result = Result(self.data, self.ref)
-        # Add to results_list
-        # self.result_list.append(new_result)
-
-    def load_cols(self, df, colType, filePath):
-        """
-        Accept a dataframe of columns of exp data
-        """
-        if colType == 'exp':
-            self.exp = self.clean_data(df)
-            self.dataCols = list(df.drop('nm', axis=1))
-            self.expPath = filePath
-            self.identify(self.expPath)
-        elif colType == 'ref':
-            self.ref = self.clean_data(df)
-            self.species = list(df.drop('nm', axis=1))
-            self.refPath = filePath
-        else:
-            warn('Unknown colType')
-
-    def save_pdf(self, fname, fig):
-        # doc = PdfPages(fname)
-        # fig.savefig(doc, format='pdf')
-        # doc.close()
-        pass
-
-    def plot_results(self):
-        for r in self.result_list:
-            fig = r.export()
-            print("Exporting", r.ts.timestamp())
-            #fig.figure
-            #fig.canvas.draw()
-            fig.show()
-            #ax_list = fig.axes
-            #print(ax_list)
-            self.save_pdf('output/'+str(r.ts.timestamp())+'.pdf', fig)
-
-    def list_results(self):
-        print("Results list:")
-        for r in self.result_list:
-            print(r.ts.timestamp())
-
     def clean_data(self):
         """
         Trims all data to be within the limits, and removes data points that
@@ -129,7 +66,6 @@ class Alch:
         if self.ref is None or self.data is None:
             warn("Don't have all df loaded to clean")
             return
-        print("continuing with clean")
         # Find the index from the ref df
         ref_idx = self.ref.index.values
         # Find the index from the data df
@@ -147,6 +83,46 @@ class Alch:
         # Slim down each df by the new index
         self.data = self.data.loc[common_idx]
         self.ref = self.ref.loc[common_idx]
+        print("Cleaned successfully with", len(common_idx), "fitting points.")
+
+    def generate_result(self):
+        """
+        Given settings about a run, generate a result object
+        """
+        # Currently being done separately
+        # self.ready = self.readyCheck()
+
+        if not self.ready:
+            warn("Not ready to run")
+            return
+
+        # Drop index columns, should already match
+        expData = self.data.drop('idx', axis=1)
+        refData = self.ref.drop('idx', axis=1)
+        expCols = list(expData)
+        refCols = list(refData)
+        print("Have cols", expCols)
+        if self.mode == 'S':
+            pass
+        elif self.mode == 'R':
+            # In replicate case, make an average of all data
+            expData = expData.mean(axis=1)
+        else:
+            print("Don't recognize mode", self.mode)
+            return
+
+        # Make a call to deconvolution algo, store the results
+        coeffs, perr = alch_deconv.doFitting(refData, expData)
+
+        # Get fit data column now that deconvolution is complete
+        self.fit = alch_deconv.func(refData.T, *coeffs)
+        print(refCols)
+        print(coeffs/sum(coeffs))
+
+        ss_r = np.sum((expData - self.fit) ** 2)
+        ss_t = np.sum((expData - np.mean(expData)) ** 2)
+        r2 = 1 - (ss_r / ss_t)
+        print("R^2:", r2)
 
     def Reset(self):
         """
@@ -155,6 +131,53 @@ class Alch:
         self.data = None
         self.ref = None
 
+    def identify(self, dataPath):
+        """
+        Establish information about file name and location
+        """
+        self.dirName = os.path.dirname(dataPath)
+        self.fullName = os.path.basename(dataPath)
+        self.simpleName, self.ext = os.path.splitext(self.fullName)
+        #if name:
+            #self.nickName = name
+
+    def load_cols(self, df, colType, filePath):
+        """
+        Accept a dataframe of columns of exp data
+        """
+        if colType == 'exp':
+            self.exp = self.clean_data(df)
+            self.dataCols = list(df.drop('idx', axis=1))
+            self.expPath = filePath
+            self.identify(self.expPath)
+        elif colType == 'ref':
+            self.ref = self.clean_data(df)
+            self.species = list(df.drop('idx', axis=1))
+            self.refPath = filePath
+        else:
+            warn('Unknown colType')
+
+    def save_pdf(self, fname, fig):
+        # doc = PdfPages(fname)
+        # fig.savefig(doc, format='pdf')
+        # doc.close()
+        pass
+
+    def plot_results(self):
+        for r in self.result_list:
+            fig = r.export()
+            print("Exporting", r.ts.timestamp())
+            # fig.figure
+            # fig.canvas.draw()
+            fig.show()
+            # ax_list = fig.axes
+            # print(ax_list)
+            self.save_pdf('output/' + str(r.ts.timestamp()) + '.pdf', fig)
+
+    def list_results(self):
+        print("Results list:")
+        for r in self.result_list:
+            print(r.ts.timestamp())
 
 class Result:
     """
@@ -165,7 +188,7 @@ class Result:
         self.mode = 'S'  # (S)imple, (R)eplicate, (K)inetic
         self.ts = datetime.datetime.now()  # Current time (use .timestamp() for epoch)
         self.ref = ref  # Reference data frame
-        self.refData = self.owner.ref.drop('nm', axis=1)  # Remove nm column
+        self.refData = self.owner.ref.drop('idx', axis=1)  # Remove nm column
         self.expData = self.owner.exp  # Grab data from owner
         self.run_deconv()
         self.do_stats()
@@ -173,25 +196,6 @@ class Result:
 
     def deconv_single(self):
         pass
-
-    def run_deconv(self):
-        """
-        Run the deconvolution algorithm given a certain set of data and
-        reference spectra. Called automaticaly on object creation.
-        TODO: Make results text callable externally
-        """
-        if self.mode == 'S':
-            # In simple case, rename single data column to 'data'
-            self.expData.rename(columns={self.expData.columns[1]: 'data'}, inplace=True)
-        if self.mode == 'R':
-            # In replicate case, make an average of all data
-            self.expData = self.owner.exp[self.owner.dataCols].mean(axis=1)
-
-        # Make a call to deconvolution algo, store the results
-        self.coeffs, self.perr = alch_deconv.doFitting(self.refData, self.expData['data'])
-
-        # Get fit data column now that deconvolution is complete
-        self.fit = alch_deconv.func(self.refData.T, *self.coeffs)
 
     def do_stats(self):
         """
