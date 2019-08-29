@@ -25,6 +25,7 @@ class ViewerWindow(QWidget):
         self.size_left = QSizePolicy()
         self.side_right = QVBoxLayout()
         self.size_right = QSizePolicy()
+        self.side_splash = QVBoxLayout()
 
         # Layout: Left
         self.group_left = QGroupBox('Files')
@@ -48,23 +49,29 @@ class ViewerWindow(QWidget):
         self.button_bar.addWidget(QPushButton('Re-run'))
         self.button_bar.addWidget(QPushButton('Remove'))
 
+        # Splash screen
+        self.group_splash = QGroupBox('Splash')
+        self.side_splash.addWidget(QLabel('Alchromy'))
+        self.group_splash.setLayout(self.side_splash)
+
         # Add widgets
         self.split_area = QSplitter()
         self.split_area.addWidget(self.group_left)
         self.split_area.addWidget(self.group_right)
         self.split_area.setCollapsible(0, False)
         self.split_area.setCollapsible(1, False)
-
         # Finalize layout
         self.final_layout.addWidget(self.split_area)
         self.setLayout(self.final_layout)
+        # Start empty
+        self.showSplashScreen()
 
-    def splashScreen(self):
+    def showSplashScreen(self):
         """
         A placeholder for the preview pane
         :return:
         """
-        pass
+        self.split_area.replaceWidget(1, self.group_splash)
 
     def loadAlch(self, alch):
         """
@@ -101,3 +108,4 @@ class ViewerWindow(QWidget):
         #    i = self.list_alch.currentRow()
         print("Focusing on item", i)
         self.r2value.setText(str(self.alchs[i].r2))
+        self.split_area.replaceWidget(1, self.group_right)
