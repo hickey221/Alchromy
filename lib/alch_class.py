@@ -38,6 +38,7 @@ class Alch:
         self.ref = None
         self.mode = None  # 'S'imple, 'R'eplicate, 'K'inetic
         self.fit = None
+        self.name = "test"
         # self.outputPath = outputPath
         # self.refPath = refPath
         self.normalize = False
@@ -121,8 +122,8 @@ class Alch:
 
         ss_r = np.sum((expData - self.fit) ** 2)
         ss_t = np.sum((expData - np.mean(expData)) ** 2)
-        r2 = 1 - (ss_r / ss_t)
-        print("R^2:", r2)
+        self.r2 = 1 - (ss_r / ss_t)
+        print("R^2:", self.r2)
 
     def Reset(self):
         """

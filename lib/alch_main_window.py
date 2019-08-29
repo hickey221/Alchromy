@@ -74,6 +74,8 @@ class MainWindow(QMainWindow):
         print("Ready check:", self.alch.ready)
         if self.alch.ready:
             self.alch.generate_result()
+            self.window_viewer.loadAlch(self.alch)
+            self.window_viewer.show()
 
     def showMsg(self, msg):
         self.status_bar.showMessage(msg, 1000)
