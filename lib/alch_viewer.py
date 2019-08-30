@@ -24,6 +24,8 @@ class ViewerWindow(QWidget):
         self.side_left = QVBoxLayout()
         self.size_left = QSizePolicy()
         self.side_right = QVBoxLayout()
+        # self.side_right = QStackedLayout()
+        self.stacked_right = QStackedWidget()
         self.size_right = QSizePolicy()
         self.side_splash = QVBoxLayout()
 
@@ -54,15 +56,23 @@ class ViewerWindow(QWidget):
         self.side_splash.addWidget(QLabel('Alchromy'))
         self.group_splash.setLayout(self.side_splash)
 
+        self.stacked_right.addWidget(self.group_splash)
+        self.stacked_right.addWidget(self.group_right)
+
         # Add widgets
         self.split_area = QSplitter()
         self.split_area.addWidget(self.group_left)
-        self.split_area.addWidget(self.group_right)
+        self.split_area.addWidget(self.stacked_right)
+        #self.split_area.addWidget(self.group_right)
+        #self.split_area.addWidget(self.group_right)
         self.split_area.setCollapsible(0, False)
         self.split_area.setCollapsible(1, False)
+
+
         # Finalize layout
         self.final_layout.addWidget(self.split_area)
         self.setLayout(self.final_layout)
+
         # Start empty
         self.showSplashScreen()
 
@@ -71,7 +81,11 @@ class ViewerWindow(QWidget):
         A placeholder for the preview pane
         :return:
         """
-        self.split_area.replaceWidget(1, self.group_splash)
+        #self.split_area.addWidget(self.group_splash)
+        #self.split_area.replaceWidget(1, self.group_splash)
+        #self.group_right.setLayout(self.side_splash)
+        #self.side_stack.setCurrentIndex(1)
+        pass
 
     def loadAlch(self, alch):
         """
