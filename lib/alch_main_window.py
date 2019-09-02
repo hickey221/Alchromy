@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.group_opt = alch_options_group.OptGroup(self)
 
         run_button = QPushButton('Run')
-        run_button.setStatusTip('Begin analysis with selected settings.')
+        # run_button.setStatusTip('Begin analysis with selected settings.')
         run_button.clicked.connect(self.run_action)
 
         # Assemble layout
@@ -66,6 +66,10 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
 
     def run_action(self):
+
+        if self.group_data.window_load.df is None:
+            self.showMsg('No data loaded!')
+            return
         self.showMsg('Running!')
         self.alch.data = self.group_data.window_load.df
         self.alch.ref = self.group_ref.get_df()
@@ -78,7 +82,7 @@ class MainWindow(QMainWindow):
             self.window_viewer.show()
 
     def showMsg(self, msg):
-        self.status_bar.showMessage(msg, 1000)
+        self.status_bar.showMessage(msg, 2000)
 
     def logMsg(self, msg):
         self.statusLog.setText(msg)

@@ -1,5 +1,6 @@
-from PySide2.QtGui import QPalette, QColor
+from PySide2.QtGui import QPalette, QColor, QBrush, QPen, QFont
 from PySide2.QtCore import Qt
+from PySide2.QtCharts import QtCharts
 
 
 class Darkmode(QPalette):
@@ -21,3 +22,23 @@ class Darkmode(QPalette):
 
         self.setColor(QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
         self.setColor(QPalette.Disabled, QPalette.WindowText, QColor(100, 100, 100))
+
+
+class DarkChart(QtCharts.QChart):
+    """
+    Dark themed QChart object
+    """
+    def __init__(self):
+        QtCharts.QChart.__init__(self)
+        self.setBackgroundBrush(QBrush(color=Qt.transparent))
+
+
+class DarkAxis(QtCharts.QValueAxis):
+    def __init__(self):
+        QtCharts.QValueAxis.__init__(self)
+        self.lightpen = QPen(color=Qt.green)
+        self.lightbrush = QBrush(color=Qt.white)
+
+        self.setGridLinePen(self.lightpen)
+        self.setLinePen(self.lightpen)
+        self.setLabelsBrush(self.lightbrush)

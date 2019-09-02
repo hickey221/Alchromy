@@ -11,6 +11,7 @@ class LoadWindow(QWidget):
         # Establish some window stuff
         QWidget.__init__(self)
         self.resize(800, 400)
+        self.df = None
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Modal setting = this window has focus over MainWindow when shown
         self.setWindowModality(Qt.ApplicationModal)

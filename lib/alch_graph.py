@@ -1,9 +1,9 @@
 from PySide2.QtWidgets import *
 from PySide2.QtCore import Qt
-from PySide2 import QtGui, QtSvg
+from PySide2.QtGui import QPainter, QBrush
 from PySide2.QtCharts import QtCharts
 
-from lib import alch_pandas_model
+from lib import alch_pandas_model, alch_theme
 # TODO: SVG saving: https://stackoverflow.com/questions/38800759/rendering-qchart-without-qgraphicsview
 
 
@@ -17,13 +17,14 @@ class Graph(QWidget):
         self.model = None
 
         # Create chart
-        self.chart = QtCharts.QChart()
+        # self.chart = QtCharts.QChart()
+        self.chart = alch_theme.DarkChart()
         self.chart_view = QtCharts.QChartView(self.chart)
-        self.chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
 
         # Placeholder axes
-        self.axis_x = QtCharts.QValueAxis()
-        self.axis_y = QtCharts.QValueAxis()
+        self.axis_x = alch_theme.DarkAxis()
+        self.axis_y = alch_theme.DarkAxis()
 
         # Left layout
         self.main_layout = QHBoxLayout()
@@ -44,14 +45,14 @@ class Graph(QWidget):
         self.chart.removeAxis(self.axis_x)
         self.chart.removeAxis(self.axis_y)
         # Set X-axis
-        self.axis_x = QtCharts.QValueAxis()
+        self.axis_x = alch_theme.DarkAxis()
         self.axis_x.setTickCount(6)
         self.axis_x.setLabelFormat("%.0f")
         # self.axis_x.setTitleText("Wavelength")
         self.chart.addAxis(self.axis_x, Qt.AlignBottom)
 
         # Setting Y-axis
-        self.axis_y = QtCharts.QValueAxis()
+        self.axis_y = alch_theme.DarkAxis()
         # self.axis_y.setTickCount(10)
         self.axis_y.setLabelFormat("%.2f")
         # self.axis_y.setTitleText("Absorbance")

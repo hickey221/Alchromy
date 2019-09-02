@@ -72,7 +72,6 @@ class ViewerWindow(QWidget):
         self.split_area.setCollapsible(0, False)
         self.split_area.setCollapsible(1, False)
 
-
         # Finalize layout
         self.final_layout.addWidget(self.split_area)
         self.setLayout(self.final_layout)
@@ -85,11 +84,6 @@ class ViewerWindow(QWidget):
         A placeholder for the preview pane
         :return:
         """
-        #self.split_area.addWidget(self.group_splash)
-        #self.split_area.replaceWidget(1, self.group_splash)
-        #self.group_right.setLayout(self.side_splash)
-        #self.side_stack.setCurrentIndex(1)
-        #print("Showing splash screen")
         self.stacked_right.setCurrentWidget(self.group_splash)
 
     def loadAlch(self, alch):
