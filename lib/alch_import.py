@@ -26,6 +26,8 @@ def load(filePath):
             df = pd.read_csv(filePath, '\t')
 
         # Clean up the dataframe
+        # Force column names to string
+        df.columns = df.columns.astype(str)
         # Bug fix for duplicate 2nd column name in some Olis-produced files
         #print("Loaded columns:", df.columns)
         if df.columns[0] == '0' and df.columns[1] == '0.1':

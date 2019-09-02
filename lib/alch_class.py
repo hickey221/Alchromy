@@ -121,8 +121,8 @@ class Alch:
         self.result.columns = ['idx']
         self.result['data'] = expData
         self.result['fit'] = alch_deconv.func(refData.T, *coeffs)
-        #print(refCols)
-        #print(coeffs/sum(coeffs))
+        print(refCols)
+        print(coeffs/sum(coeffs))
 
         ss_r = np.sum((expData - self.result['fit']) ** 2)
         ss_t = np.sum((expData - np.mean(expData)) ** 2)
