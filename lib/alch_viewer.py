@@ -41,9 +41,10 @@ class ViewerWindow(QWidget):
         # Layout: Right (functional)
         self.r2value = QLabel('R squared goes here')
         self.group_right = QGroupBox('Results')
-        self.side_right.addWidget(QLabel('Graph'))
-        self.side_right.addWidget(QLabel('Options used'))
-        self.side_right.addWidget(self.r2value)
+        self.side_right.addWidget(QLabel('Graph'), 0)
+        self.side_right.addWidget(self.graph, 1)
+        self.side_right.addWidget(QLabel('Options used'), 0)
+        self.side_right.addWidget(self.r2value, 0)
         self.group_right.setLayout(self.side_right)
         self.size_right.setHorizontalStretch(1)
         self.group_right.setSizePolicy(self.size_right)
@@ -88,7 +89,7 @@ class ViewerWindow(QWidget):
         #self.split_area.replaceWidget(1, self.group_splash)
         #self.group_right.setLayout(self.side_splash)
         #self.side_stack.setCurrentIndex(1)
-        print("Showing splash screen")
+        #print("Showing splash screen")
         self.stacked_right.setCurrentWidget(self.group_splash)
 
     def loadAlch(self, alch):
@@ -101,7 +102,7 @@ class ViewerWindow(QWidget):
         self.updateList()
         # Focus on latest addition to list
         new_idx = self.list_alch.count()-1
-        print("Want to select", new_idx)
+        #print("Want to select", new_idx)
         self.list_alch.setCurrentRow(new_idx)
         self.focusAlch()
         self.list_alch.item(new_idx).setSelected(True)
@@ -121,8 +122,8 @@ class ViewerWindow(QWidget):
         i = self.list_alch.currentRow()
         #if i is None:
         #    i = self.list_alch.currentRow()
-        print("Focusing on item", i)
+        #print("Focusing on item", i)
         self.r2value.setText(str(self.alchs[i].r2))
         self.stacked_right.setCurrentWidget(self.group_right)
         # TODO: Load alch result into the graph
-        # self.graph.setModel(self.alchs[i].data)
+        self.graph.setModel(self.alchs[i].result)

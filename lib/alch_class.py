@@ -36,8 +36,9 @@ class Alch:
         # Initialize placeholders for pandas data frames
         self.data = None
         self.ref = None
+        self.common_idx = None
         self.mode = None  # 'S'imple, 'R'eplicate, 'K'inetic
-        self.fit = None
+        self.result = None
         self.name = "test"
         # self.outputPath = outputPath
         # self.refPath = refPath
@@ -72,19 +73,19 @@ class Alch:
         # Find the index from the data df
         data_idx = self.data.index.values
         # Find common points and save this as the new index
-        common_idx = np.intersect1d(ref_idx, data_idx)
+        self.common_idx = np.intersect1d(ref_idx, data_idx)
         # Cut anything outside our specified cutoffs
-        common_idx = np.array([x for x in common_idx if self.endpoints[0] < x < self.endpoints[1]])
+        self.common_idx = np.array([x for x in self.common_idx if self.endpoints[0] < x < self.endpoints[1]])
         # Throw error if no overlap
-        if len(common_idx) == 0:
+        if len(self.common_idx) == 0:
             warn("No overlap in indices!")
             return
-        elif len(common_idx) < 20:
+        elif len(self.common_idx) < 20:
             warn("Fewer than 20 index points remaining")
         # Slim down each df by the new index
-        self.data = self.data.loc[common_idx]
-        self.ref = self.ref.loc[common_idx]
-        print("Cleaned successfully with", len(common_idx), "fitting points.")
+        self.data = self.data.loc[self.common_idx]
+        self.ref = self.ref.loc[self.common_idx]
+        print("Cleaned successfully with", len(self.common_idx), "fitting points.")
 
     def generate_result(self):
         """
@@ -116,11 +117,14 @@ class Alch:
         coeffs, perr = alch_deconv.doFitting(refData, expData)
 
         # Get fit data column now that deconvolution is complete
-        self.fit = alch_deconv.func(refData.T, *coeffs)
-        print(refCols)
-        print(coeffs/sum(coeffs))
+        self.result = pd.DataFrame(self.common_idx)
+        self.result.columns = ['idx']
+        self.result['data'] = expData
+        self.result['fit'] = alch_deconv.func(refData.T, *coeffs)
+        #print(refCols)
+        #print(coeffs/sum(coeffs))
 
-        ss_r = np.sum((expData - self.fit) ** 2)
+        ss_r = np.sum((expData - self.result['fit']) ** 2)
         ss_t = np.sum((expData - np.mean(expData)) ** 2)
         self.r2 = 1 - (ss_r / ss_t)
         print("R^2:", self.r2)
