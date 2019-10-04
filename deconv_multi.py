@@ -333,7 +333,7 @@ def printResultsText(species, coeffs, perr, fileDict, flags):
     if flags['Normalize']:
         tbody += ["Normalized to lowest value = 0"]
     tbody += [""]
-    tbody += ["Species\tCoefficients (Percent)\tStandard error*"]
+    tbody += ["Species\tPercent\tCoefficients\tStandard error*"]
     for sp,coef,sd in zip(species,coeffs,perr):
         cpercent = 100*coef/sum(coeffs)
         if coef< 0.000001:
@@ -341,7 +341,7 @@ def printResultsText(species, coeffs, perr, fileDict, flags):
         else:
             sdpercent = 100 * sd / coef
         #tbox = tbox + "\n" + "{:.2f}% ".format(cpercent) + str(sp)
-        tbody += [sp+"\t{:.6f} ({:.2f}%)".format(coef,cpercent)+"\t{:.6f} ({:.2f}%)".format(sd,sdpercent)]
+        tbody += [sp+"\t{:.2f}%".format(cpercent)+"\t{:.6f}".format(coef)+"\t{:.6f}".format(sd)]
 
     #tbody += ["",
     #          "Fit data:",
