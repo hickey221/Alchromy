@@ -120,12 +120,16 @@ class Alch:
         self.result = pd.DataFrame(self.common_idx)
         self.result.columns = ['idx']
         self.result['data'] = expData
+        print(self.result['data'])
         self.result['fit'] = alch_deconv.func(refData.T, *coeffs)
         print(refCols)
         print(coeffs/sum(coeffs))
 
-        ss_r = np.sum((expData - self.result['fit']) ** 2)
-        ss_t = np.sum((expData - np.mean(expData)) ** 2)
+        ss_r = np.sum((self.result['data'] - self.result['fit']) ** 2)
+        print(ss_r)
+        print(type(self.result))
+        ss_t = np.sum((self.result['data'] - np.mean(self.result['data'])) ** 2)
+        print(ss_t)
         self.r2 = 1 - (ss_r / ss_t)
         print("R^2:", self.r2)
 
