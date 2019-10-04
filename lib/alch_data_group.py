@@ -55,6 +55,9 @@ class DataGroup(QGroupBox):
 
     def load_action(self):
         self.window_load.show()
+        # If nothing previously loaded, jump to file browse
+        if self.window_load.df is None:
+            self.window_load.browse_button_action()
 
     def paste_action(self):
         self.parent.showMsg("Opening paste window")
