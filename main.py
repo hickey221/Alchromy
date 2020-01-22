@@ -16,7 +16,7 @@ import os
 # For result GUI
 import matplotlib
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 #from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 from matplotlib.offsetbox import AnchoredText
@@ -601,10 +601,10 @@ class A_GUIFrame:
     def Arrange(self):
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
         
-        toolbar = NavigationToolbar2TkAgg(self.canvas, self.frame)
+        toolbar = NavigationToolbar2Tk(self.canvas, self.frame)
         toolbar.update()
         self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
         self.refreshButton.pack()
@@ -812,7 +812,7 @@ class Threshold_window:
         self.sp = self.fig.add_subplot(111)
         self.sp.set_ylim([self.ymin,self.ymax.get()])
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plotFrame)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=T.TOP, fill=T.BOTH, expand=1)
         self.canvas._tkcanvas.pack(side=T.TOP, fill=T.BOTH, expand=1)
         
