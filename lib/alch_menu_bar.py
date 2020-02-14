@@ -12,9 +12,7 @@ class MenuBar(QMenuBar):
         self.menu_file.addAction(QAction("test"))
         self.menu_tools = self.addMenu("&Tools")
         self.menu_help = self.addMenu("&Help")
-        self.populateMenuBar()
-
-    def populateMenuBar(self):
+        # VVV POPULATE MENUBAR VVV
         # About dialog
         self.action_about = QAction("&About")
         self.action_about.triggered.connect(self.show_about_dialog)
@@ -35,7 +33,7 @@ class MenuBar(QMenuBar):
         self.action_faq = QAction("&FAQ")
         self.action_faq.triggered.connect(self.launchFAQ)
         # Viewer shortcut
-        self.action_viewer = QAction('&Viewer')
+        self.action_viewer = QAction('&Show Viewer')
         self.action_viewer.triggered.connect(self.parent.window_viewer.show)
 
         # Attach actions to QMenu items
