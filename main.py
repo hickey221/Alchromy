@@ -1,5 +1,16 @@
 # PyQt5==5.9.2
+"""
+Todo list:
+GENERAL:
+- Re-add kinetic run
+- Allow choice of folder to save results
 
+VIEWER:
+- Fix colors
+- ALlow for turning on/off original data vs fit
+-
+- Export image as seen in app
+"""
 import sys
 from PySide2.QtCore import QCoreApplication
 from PySide2.QtWidgets import QApplication
