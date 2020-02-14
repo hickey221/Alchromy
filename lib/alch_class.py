@@ -39,15 +39,17 @@ class Alch:
         self.common_idx = None
         self.mode = None  # 'S'imple, 'R'eplicate, 'K'inetic
         self.result = None
-        self.name = "test"
+        self.name = "new"
         # self.outputPath = outputPath
         # self.refPath = refPath
         self.normalize = False
         self.endpoints = (-np.inf, np.inf)
         self.result_list = []
         self.ready = self.readyCheck()
+        self.r2 = None
 
     def readyCheck(self):
+        # Weird 'is not None' calls because of df truth ambiguity
         if self.data is not None and self.ref is not None:
             try:
                 self.clean_data()
@@ -85,25 +87,22 @@ class Alch:
         # Slim down each df by the new index
         self.data = self.data.loc[self.common_idx]
         self.ref = self.ref.loc[self.common_idx]
+        # Drop indices from data now that it's in common_idx
+        self.data = self.data.drop('idx', axis=1)
+        self.ref = self.ref.drop('idx', axis=1)
         print("Cleaned successfully with", len(self.common_idx), "fitting points.")
 
     def generate_result(self):
         """
         Given settings about a run, generate a result object
         """
-        # Currently being done separately
-        # self.ready = self.readyCheck()
-
         if not self.ready:
             warn("Not ready to run")
             return
 
-        # Drop index columns, should already match
-        expData = self.data.drop('idx', axis=1)
-        refData = self.ref.drop('idx', axis=1)
-        expCols = list(expData)
-        refCols = list(refData)
-        print("Have cols", expCols)
+        # Get out of pandas format
+        expData = self.data.values
+
         if self.mode == 'S':
             pass
         elif self.mode == 'R':
@@ -114,24 +113,25 @@ class Alch:
             return
 
         # Make a call to deconvolution algo, store the results
-        coeffs, perr = alch_deconv.doFitting(refData, expData)
+        coeffs, perr = alch_deconv.doFitting(self.ref, expData)
 
         # Get fit data column now that deconvolution is complete
         self.result = pd.DataFrame(self.common_idx)
         self.result.columns = ['idx']
         self.result['data'] = expData
-        print(self.result['data'])
-        self.result['fit'] = alch_deconv.func(refData.T, *coeffs)
-        print(refCols)
-        print(coeffs/sum(coeffs))
+        # print(self.result['data'])
+        self.result['fit'] = alch_deconv.func(self.ref.T, *coeffs)
+        # print(refCols)
+        # print(coeffs/sum(coeffs))
 
         ss_r = np.sum((self.result['data'] - self.result['fit']) ** 2)
-        print(ss_r)
-        print(type(self.result))
+        # print(f"ss_r={ss_r} ({type(ss_r)})")
+        # print(type(self.result))
         ss_t = np.sum((self.result['data'] - np.mean(self.result['data'])) ** 2)
-        print(ss_t)
+        # print(f"ss_r={ss_t} ({type(ss_t)})")
+        # print(ss_t)
         self.r2 = 1 - (ss_r / ss_t)
-        print("R^2:", self.r2)
+        print(f"R^2: {self.r2}")
 
     def Reset(self):
         """
@@ -140,106 +140,8 @@ class Alch:
         self.data = None
         self.ref = None
 
-    def identify(self, dataPath):
-        """
-        Establish information about file name and location
-        """
-        self.dirName = os.path.dirname(dataPath)
-        self.fullName = os.path.basename(dataPath)
-        self.simpleName, self.ext = os.path.splitext(self.fullName)
-        #if name:
-            #self.nickName = name
-
-    def load_cols(self, df, colType, filePath):
-        """
-        Accept a dataframe of columns of exp data
-        """
-        if colType == 'exp':
-            self.exp = self.clean_data(df)
-            self.dataCols = list(df.drop('idx', axis=1))
-            self.expPath = filePath
-            self.identify(self.expPath)
-        elif colType == 'ref':
-            self.ref = self.clean_data(df)
-            self.species = list(df.drop('idx', axis=1))
-            self.refPath = filePath
-        else:
-            warn('Unknown colType')
-
     def save_pdf(self, fname, fig):
         # doc = PdfPages(fname)
         # fig.savefig(doc, format='pdf')
         # doc.close()
         pass
-
-    def plot_results(self):
-        for r in self.result_list:
-            fig = r.export()
-            print("Exporting", r.ts.timestamp())
-            # fig.figure
-            # fig.canvas.draw()
-            fig.show()
-            # ax_list = fig.axes
-            # print(ax_list)
-            self.save_pdf('output/' + str(r.ts.timestamp()) + '.pdf', fig)
-
-    def list_results(self):
-        print("Results list:")
-        for r in self.result_list:
-            print(r.ts.timestamp())
-
-class Result:
-    """
-    A result object containing fit data, run parameters, and statistics
-    """
-    def __init__(self, owner, ref):
-        self.owner = owner  # The Alch instance we belong to
-        self.mode = 'S'  # (S)imple, (R)eplicate, (K)inetic
-        self.ts = datetime.datetime.now()  # Current time (use .timestamp() for epoch)
-        self.ref = ref  # Reference data frame
-        self.refData = self.owner.ref.drop('idx', axis=1)  # Remove nm column
-        self.expData = self.owner.exp  # Grab data from owner
-        self.run_deconv()
-        self.do_stats()
-        self.export()
-
-    def deconv_single(self):
-        pass
-
-    def do_stats(self):
-        """
-        Get some summary data about the results.
-        """
-        ss_r = np.sum((self.expData['data'] - self.fit)**2)
-        ss_t = np.sum((self.expData['data'] - np.mean(self.expData['data']))**2)
-        self.r2 = 1-(ss_r/ss_t)
-
-    def export(self):
-        """
-        Method for saving spreadsheet and plot data from an individual .alch
-        result
-        """
-        # Set up figure
-        fig, ax = plt.subplots(1,1)
-        ax.set_title(self.ts.timestamp())
-        ax.set_xlabel('Wavelength (nm)')
-        ax.set_ylabel('Absorbance')
-
-        # Plot data
-        if self.mode == 'R':
-            _min= self.expData.min(axis=1)
-            _max = self.expData.max(axis=1)
-            ax.fill_between(self.expData['nm'], _min, _max)
-        ax.plot(self.expData['nm'], self.expData['data'], 'b.-', label='data')
-        ax.plot(self.expData['nm'], self.fit, 'r-', label='fit')
-
-        # Print fit data and coefficients
-        tbox = r"$R^2$ fit: {:.5f}".format(self.r2)
-        anchored_text = AnchoredText(tbox, loc=5,prop=dict(color='black', size=9))
-        anchored_text.patch.set(boxstyle="round,pad=0.,rounding_size=0.2",alpha=0.2)
-        ax.add_artist(anchored_text)
-        ax.legend(loc=1) 
-        #plt.close(fig)
-        #print(type(fig))
-        #plt.show()
-        return fig
