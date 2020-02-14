@@ -12,6 +12,7 @@ class LoadWindow(QWidget):
         QWidget.__init__(self)
         self.resize(800, 400)
         self.df = None
+        self.name = None
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Modal setting = this window has focus over MainWindow when shown
         self.setWindowModality(Qt.ApplicationModal)
@@ -39,7 +40,7 @@ class LoadWindow(QWidget):
         bottom_button_bar = QHBoxLayout()
 
         # First row: Load buttons
-        #top_button_bar.addWidget(self.load_label, stretch=0)
+        # top_button_bar.addWidget(self.load_label, stretch=0)
         top_button_bar.addWidget(self.browse_button, stretch=0)
         top_button_bar.addWidget(QLabel(''), 1)  # Spacer
         # Second row: wave list and graph plot
@@ -96,6 +97,7 @@ class LoadWindow(QWidget):
             self.df = alch_import.load(file_name[0])
             self.graph.setModel(self.df)
             self.make_wave_list(self.df)
+            self.name = file_name
 
     def check_button_action(self):
         checked_index = self.get_checked_items(self.waves_list)
