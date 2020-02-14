@@ -2,14 +2,17 @@
 """
 Todo list:
 GENERAL:
-- Re-add kinetic run
-- Allow choice of folder to save results
+[ ] Re-add kinetic run
+[ ] Track results as a dict of { species: (amt, err) }
+[ ] Allow choice of folder to save results
+[ ] Save run as pickle/JSON
+[ ] Load saved results (.alch file)
 
 VIEWER:
-- Fix colors
-- ALlow for turning on/off original data vs fit
--
-- Export image as seen in app
+[ ] Fix colors
+[ ] Print results from dict (above)
+[ ] ALlow for turning on/off original data vs fit
+[ ] Export image as seen in app
 """
 import sys
 from PySide2.QtCore import QCoreApplication
