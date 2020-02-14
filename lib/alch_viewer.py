@@ -58,8 +58,12 @@ class ViewerWindow(QWidget):
         # Layout: Buttons
         self.button_remove = QPushButton('Remove')
         self.button_remove.clicked.connect(self.showSplashScreen)
-        self.button_bar.addWidget(QPushButton('Export'))
+
+        self.button_export = QPushButton('Export')
+        self.button_export.clicked.connect(self.savePickle)
+
         self.button_bar.addWidget(QPushButton('Re-run'))
+        self.button_bar.addWidget(self.button_export)
         self.button_bar.addWidget(self.button_remove)
 
         # Add widgets
@@ -101,6 +105,14 @@ class ViewerWindow(QWidget):
         self.focusAlch()
         self.list_alch.item(new_idx).setSelected(True)
         self.list_alch.setFocus()
+
+    def savePickle(self):
+        i = self.list_alch.currentRow()
+        a = self.alchs[i]
+        # for a in self.alchs:
+        #pickle.Pickler('test.alch').dump(a)
+        with open(a.name+'.alch', 'wb') as file:
+            pickle.dump(a, file)
 
     def updateList(self):
         self.list_alch.clear()
