@@ -40,4 +40,5 @@ def load(filePath):
         print("Saving columns:", df.columns)
     else:
         print("Error: File must be of type:", allowedFiles)
+        return
     return df
