@@ -1,25 +1,27 @@
-from PySide2.QtWidgets import *
-from PySide2.QtCore import Qt
+# from PySide2.QtWidgets import *
+#from PySide2.QtCore import Qt
 from PySide2.QtGui import QPainter, QBrush
-from PySide2.QtCharts import QtCharts
+#from PySide2.QtCharts import QtCharts
+from PySide2.QtPrintSupport import QPrinter
+from PySide2 import QtWidgets, QtCore, QtGui, QtCharts, QtPrintSupport, QtSvg
 
 from lib import alch_pandas_model, alch_theme
 # TODO: SVG saving: https://stackoverflow.com/questions/38800759/rendering-qchart-without-qgraphicsview
 
 
-class Graph(QWidget):
+class Graph(QtWidgets.QWidget):
     def __init__(self):
         """
         Container widget for all elements of a waveform graph plot
         """
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
         self.series = None
         self.model = None
 
         # Create chart
         # self.chart = QtCharts.QChart()
         self.chart = alch_theme.DarkChart()
-        self.chart_view = QtCharts.QChartView(self.chart)
+        self.chart_view = QtCharts.QtCharts.QChartView(self.chart)
         self.chart_view.setRenderHint(QPainter.Antialiasing)
 
         # Placeholder axes
@@ -27,8 +29,8 @@ class Graph(QWidget):
         self.axis_y = alch_theme.DarkAxis()
 
         # Left layout
-        self.main_layout = QHBoxLayout()
-        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.main_layout = QtWidgets.QHBoxLayout()
+        size = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         size.setHorizontalStretch(1)
         # Right Layout
         size.setHorizontalStretch(4)
@@ -49,14 +51,14 @@ class Graph(QWidget):
         self.axis_x.setTickCount(6)
         self.axis_x.setLabelFormat("%.0f")
         # self.axis_x.setTitleText("Wavelength")
-        self.chart.addAxis(self.axis_x, Qt.AlignBottom)
+        self.chart.addAxis(self.axis_x, QtCore.Qt.AlignBottom)
 
         # Setting Y-axis
         self.axis_y = alch_theme.DarkAxis()
         # self.axis_y.setTickCount(10)
         self.axis_y.setLabelFormat("%.2f")
         # self.axis_y.setTitleText("Absorbance")
-        self.chart.addAxis(self.axis_y, Qt.AlignLeft)
+        self.chart.addAxis(self.axis_y, QtCore.Qt.AlignLeft)
 
     def setModel(self, df):
         """
@@ -78,7 +80,7 @@ class Graph(QWidget):
         self.series.attachAxis(self.axis_y)
 
     def add_series(self, c_index):
-        self.series = QtCharts.QLineSeries()
+        self.series = QtCharts.QtCharts.QLineSeries()
         # self.series.setName(name)
         for i in range(1, self.model.rowCount()):
             x = float(self.model.index(i, 0).data())
@@ -90,3 +92,51 @@ class Graph(QWidget):
 
         self.chart.addSeries(self.series)
         self.update_axes()
+
+    def save_image(self):
+        """
+        Record the current chart contents to a vectorized image file
+        :return:
+        """
+
+        # printer = QPrinter(QPrinter.HighResolution)
+        # printer.setOutputFormat(QPrinter.PdfFormat)
+        # printer.setOutputFileName('test_chart.pdf')
+        # painter = QPainter(printer)
+
+        output_size = QtCore.QSize(800, 600)
+        output_rect = QtCore.QRectF(QtCore.QPointF(0, 0), QtCore.QSizeF(output_size))
+        svg = QtSvg.QSvgGenerator()
+        svg.setFileName('test_chart.svg')
+        svg.setTitle('some title')
+        svg.setSize(output_size)
+        svg.setViewBox(output_rect)
+
+        canvas = svg
+        # uncomment to hide background
+        # chart.setBackgroundBrush(brush = QtGui.QBrush(QtCore.Qt.NoBrush))
+        # resize the chart, as otherwise the size/scaling of the axes etc.
+        # will be dependent on the size of the chart in the GUI
+        # this way, a consistent output size is enforced
+        original_size = self.chart.size()
+        self.chart.resize(output_rect.size())
+        painter = QtGui.QPainter()
+        painter.begin(canvas)
+        self.chart.scene().render(painter, source=output_rect, target=output_rect, mode=QtCore.Qt.IgnoreAspectRatio)
+        painter.end()
+
+        self.chart.resize(original_size)
+
+        # Save the QChartView object to an image file
+
+        """
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName('test_chart.pdf')
+        painter = QPainter(printer)
+        painter.setViewport(self.chart_view.rect())
+        painter.setWindow(self.chart_view.rect())
+        self.chart_view.render(painter)
+        painter.end()
+        """
+

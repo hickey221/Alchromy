@@ -1,6 +1,7 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
-import pickle, copy
+import pickle
+import copy
 from lib import alch_graph
 
 
@@ -108,16 +109,21 @@ class ViewerWindow(QWidget):
 
     def savePickle(self):
         i = self.list_alch.currentRow()
-        a = self.alchs[i]
+        try:
+            a = self.alchs[i]
+        except:
+            return
         # for a in self.alchs:
         #pickle.Pickler('test.alch').dump(a)
         with open(a.name+'.alch', 'wb') as file:
             pickle.dump(a, file)
+        self.graph.save_image()
 
     def updateList(self):
         self.list_alch.clear()
         for a in self.alchs:
             self.list_alch.addItem(a.name)
+        # Temp: Also call the graph save function
 
     def focusAlch(self, i=None):
         """
