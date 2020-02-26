@@ -125,17 +125,17 @@ def multiColDeconv(refPath='refspec.dat',
         # make error columns
         species_err = [sp + '_err' for sp in species]
         species_perc = [sp + ' (%)' for sp in species] # % of total
-        print(f"adding columns: {species_err}")
+        if flags['Verbose']:
+            print(f"adding columns: {species_err}")
         kdf = pd.concat([kdf, pd.DataFrame(columns=species_err)], sort=False)
         for timePoint in timePoints:
             # Make call to curve_fit
-            print(f"Fitting {exp[timePoint]}")
+            if flags['Verbose']:
+                print(f"Fitting {exp[timePoint]}")
             if flags['Normalize']:
                 print("Normalizing data")
                 exp[timePoint] = exp[timePoint] - np.min(exp[timePoint])
             coeffs, perr = doFitting(ref.drop('nm',axis=1), exp[timePoint])
-            print(f"time {timePoint}\n"
-                  f"coeffs {coeffs}")
             # Extract error and coefficients from results
             for sp,sp_e,coeff,sd,sp_perc in zip(species,species_err,coeffs,perr, species_perc):
                 kdf.loc[timePoint,sp] = coeff # Actual coefficient
@@ -197,9 +197,9 @@ def multiColDeconv(refPath='refspec.dat',
             print("Normalizing data")
             exp['data'] = exp['data']-np.min(exp['data'])
         # Call curve fitting function
-        print(f"Fitting {exp['data']}")
         coeffs, perr = doFitting(ref.drop('nm',axis=1),exp['data'])
-        print(f"coeffs {coeffs}")
+        if flags['Verbose']:
+            print(f"coeffs {coeffs}")
         # Create a line of best fit using our results
         exp['fit'] = func(ref.drop('nm',axis=1).T, *coeffs)
         if flags['Verbose']:
