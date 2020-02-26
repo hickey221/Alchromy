@@ -24,7 +24,7 @@ import os
 import deconv_multi
 import time
 
-versionNumber = "1.2.1"
+versionNumber = "1.2.2"
 #%% "About" dialog box
 def aboutBox():
     messagebox.showinfo("Alchromy","Alchromy Spectral Deconvolution\nwww.Alchromy.com\nVersion "+versionNumber+"\nRichard Hickey\nOhio State University\n2018")
