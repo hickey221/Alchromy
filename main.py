@@ -309,8 +309,8 @@ def launchDeconv():
                                                   flags=flags)
         #######################################################################
         # Update progress bar
-        pBar['value'] += barStep
-        pBar.update()
+        #pBar['value'] += barStep
+        #pBar.update()
         time.sleep(1)
         if statusReport['Code'] == 0:
             statusUpdate(statusReport['Message'])
@@ -319,7 +319,7 @@ def launchDeconv():
 
     # When finished, announce it
     statusUpdate("Done!")
-    pBar['value'] = 100
+    #pBar['value'] = 100
 
 bigGreenButton = T.Button(root, text="GO", bg="lightgreen", command=launchDeconv)
 bigGreenButton.grid(row=1, column=7) #, padx=10, pady=10
