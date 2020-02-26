@@ -32,7 +32,7 @@ def aboutBox():
 
 #%% Title, initialization and menubar
 root = T.Tk()
-root.title('Alchromy - Spectral Deconvolution')
+root.title('Alchromy - Spectral Deconvolution | v.'+versionNumber)
 
 # make the top right close button close the main window
 root.protocol("WM_DELETE_WINDOW", root.destroy)
