@@ -8,7 +8,7 @@ Welcome to Alchromy! This package is designed to perform spectral deconvolution 
 ## Dependencies
 Alchromy requires Python 3 and the following packages (install with pip or your favorite IDE):
 
-> tkinter pandas glob scipy numpy matplotlib xlrd
+`tkinter pandas glob scipy numpy matplotlib xlrd`
 
 ## Usage
 Users can access the script through the command line (using *deconv_multi.py*) or the GUI (*main_gui.py*). In either case, the following parameters should be specified:
