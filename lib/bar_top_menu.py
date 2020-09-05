@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QKeySequence, QDesktopServices
 from PySide2.QtCore import QUrl
-
+from lib.globals import *
 
 class MenuBar(QMenuBar):
     def __init__(self, parent):
@@ -48,18 +48,24 @@ class MenuBar(QMenuBar):
         self.menu_help.addAction(self.action_about)
 
     def changeTheme(self):
-        return
+        """
+        # Can't link to app from here?
+        darkmode = alch_theme.Darkmode()
+        app.setPalette(darkmode)
+
         app.setPalette(lightmode)
         self.repaint()
+        """
+        return
 
     def launchFAQ(self):
-        QDesktopServices.openUrl(QUrl("http://www.alchromy.com/"))
+        QDesktopServices.openUrl(QUrl("http://www.alchromy.com/wiki/"))
 
     def show_about_dialog(self):
         text = '<center>' \
                '<h1>Alchromy</h1>' \
                '&#8291;' \
                '</center>' \
-               '<p>Version x.xx<br/>' \
+               '<p>Version '+VERSION+'<br/>' \
                'Copyright &copy; 2016-2019 Rich Hickey</p>'
-        QMessageBox.about(self, "Alchromy v. x.xx", text)
+        QMessageBox.about(self, "Alchromy v. "+VERSION, text)

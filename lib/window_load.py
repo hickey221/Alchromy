@@ -2,8 +2,8 @@ from PySide2.QtWidgets import *
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QIcon
 
-from lib import alch_import
-from lib import alch_graph
+from lib import read_data_file
+from lib import group_graph
 
 
 class LoadWindow(QWidget):
@@ -17,7 +17,7 @@ class LoadWindow(QWidget):
         # Modal setting = this window has focus over MainWindow when shown
         self.setWindowModality(Qt.ApplicationModal)
         # Make some widgets
-        self.graph = alch_graph.Graph()
+        self.graph = group_graph.Graph()
         self.waves_list = QListWidget()
         self.waves_list.itemChanged.connect(self.update_wave_list)
         # self.load_label = QLabel('Load window screen')
@@ -94,7 +94,10 @@ class LoadWindow(QWidget):
     def browse_button_action(self):
         file_name = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
         if file_name[0]:
-            self.df = alch_import.load(file_name[0])
+            self.df = read_data_file.load(file_name[0])
+            if self.df is None:
+                print('Invalid file, aborting file browse')
+                return
             self.graph.setModel(self.df)
             self.make_wave_list(self.df)
             self.name = file_name

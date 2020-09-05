@@ -1,8 +1,7 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
-import pickle
 import copy
-from lib import alch_graph
+from lib import group_graph, alch_engine
 
 
 class ViewerWindow(QWidget):
@@ -29,7 +28,7 @@ class ViewerWindow(QWidget):
         self.stacked_right = QStackedWidget()
         self.size_right = QSizePolicy()
         self.side_splash = QVBoxLayout()
-        self.graph = alch_graph.Graph()
+        self.graph = group_graph.Graph()
 
         # Layout: Left
         self.group_left = QGroupBox('Files')
@@ -61,7 +60,7 @@ class ViewerWindow(QWidget):
         self.button_remove.clicked.connect(self.showSplashScreen)
 
         self.button_export = QPushButton('Export')
-        self.button_export.clicked.connect(self.savePickle)
+        self.button_export.clicked.connect(self.export)
 
         self.button_bar.addWidget(QPushButton('Re-run'))
         self.button_bar.addWidget(self.button_export)
@@ -99,31 +98,22 @@ class ViewerWindow(QWidget):
         # Use deep copy because this one may be changed
         self.alchs.append(copy.deepcopy(alch))
         self.updateList()
+
         # Focus on latest addition to list
         new_idx = self.list_alch.count()-1
-        #print("Want to select", new_idx)
         self.list_alch.setCurrentRow(new_idx)
         self.focusAlch()
         self.list_alch.item(new_idx).setSelected(True)
         self.list_alch.setFocus()
-
-    def savePickle(self):
-        i = self.list_alch.currentRow()
-        try:
-            a = self.alchs[i]
-        except:
-            return
-        # for a in self.alchs:
-        #pickle.Pickler('test.alch').dump(a)
-        with open(a.name+'.alch', 'wb') as file:
-            pickle.dump(a, file)
-        self.graph.save_image()
 
     def updateList(self):
         self.list_alch.clear()
         for a in self.alchs:
             self.list_alch.addItem(a.name)
         # Temp: Also call the graph save function
+
+    def export(self):
+        alch_engine.export_to_JSON(self.alchs[self.idx])
 
     def focusAlch(self, i=None):
         """

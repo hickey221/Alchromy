@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import Qt
-from lib import alch_import
+from lib import read_data_file
 
 
 class RefGroup(QGroupBox):
@@ -56,7 +56,7 @@ class RefGroup(QGroupBox):
 
     def load_ref_file(self, path):
         try:
-            self.df = alch_import.load(path)
+            self.df = read_data_file.load(path)
         except:
             print("Couldn't import reference at", path)
             return

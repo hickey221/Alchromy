@@ -5,7 +5,7 @@ class ModeGroup(QGroupBox):
     def __init__(self, parent):
         QGroupBox.__init__(self, "Mode")
         self.parent = parent  # Refers to the Qt MainWindow
-        self.mode_list = ("Simple",
+        self.mode_list = ("Single",
                           "Replicate",
                           "Kinetic")
         self.mode_desc = ("Analyze one spectrum at a time, or a batch of several spectra separately.",
@@ -24,9 +24,4 @@ class ModeGroup(QGroupBox):
     def mode_change(self):
         # Get the appropriate description of the selected mode
         self.label_mode.setText(self.mode_desc[self.mode_box.currentIndex()])
-
-
-
-
-
 

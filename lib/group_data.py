@@ -1,13 +1,13 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import Qt
-from lib import alch_load_window
+from lib import window_load
 
 
 class DataGroup(QGroupBox):
     def __init__(self, parent):
         QGroupBox.__init__(self, "Data")
         self.parent = parent  # Refers to the Qt MainWindow
-        self.window_load = alch_load_window.LoadWindow()
+        self.window_load = window_load.LoadWindow()
         self.final_layout = QVBoxLayout()
         # Load line items
         self.make_load_line()

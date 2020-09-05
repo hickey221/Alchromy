@@ -4,7 +4,7 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 
 # Internal imports
-from lib import alch_mode_group, alch_data_group, alch_options_group, alch_menu_bar, alch_class, alch_ref_group, alch_viewer
+from lib import group_mode, group_data, group_options, bar_top_menu, alch_class, group_ref, window_viewer, bar_bottom_status, alch_engine
 
 
 class MainWindow(QMainWindow):
@@ -16,20 +16,23 @@ class MainWindow(QMainWindow):
         self.statusLog = QLabel("")
         self.alch = alch_class.Alch()
         self.logMsg("Alch loaded")
-        self.window_viewer = alch_viewer.ViewerWindow()
+        self.window_viewer = window_viewer.ViewerWindow()  # Why must this exist already?
+
         # Get a menu bar at top of window
-        self.menu_bar = alch_menu_bar.MenuBar(self)
+        self.menu_bar = bar_top_menu.MenuBar(parent=self)
         self.setMenuBar(self.menu_bar)
         # Get a status bar at bottom of window
-        self.status_bar = QStatusBar()
-        self.populateStatusBar()
+        self.status_bar = bar_bottom_status.StatusBar(parent=self, log=self.statusLog)
+        self.setStatusBar(self.status_bar)
+        # self.populateStatusBar()
+
         # Begin main content assembly
         self.content = QWidget()
         self.setCentralWidget(self.content)
-        self.group_mode = alch_mode_group.ModeGroup(self)
-        self.group_data = alch_data_group.DataGroup(self)
-        self.group_ref = alch_ref_group.RefGroup(self)
-        self.group_opt = alch_options_group.OptGroup(self)
+        self.group_mode = group_mode.ModeGroup(parent=self)
+        self.group_data = group_data.DataGroup(parent=self)
+        self.group_ref = group_ref.RefGroup(parent=self)
+        self.group_opt = group_options.OptGroup(parent=self)
 
         run_button = QPushButton('Run')
         # run_button.setStatusTip('Begin analysis with selected settings.')
@@ -56,35 +59,37 @@ class MainWindow(QMainWindow):
 
         self.content.setLayout(layout_final)
 
-    def populateStatusBar(self):
-        # Declare status bar
-        temp_status = QLabel("")
-        bar_space = QLabel("")
-        self.status_bar.addWidget(temp_status)
-        self.status_bar.addWidget(bar_space, 1)
-        self.status_bar.addPermanentWidget(self.statusLog)
-        self.setStatusBar(self.status_bar)
-
     def run_action(self):
 
         if self.group_data.window_load.df is None:
             self.showMsg('No data loaded!')
             return
         self.showMsg('Running!')
+        # Grab temp data from the loading window
         self.alch.data = self.group_data.window_load.df
         self.alch.ref = self.group_ref.get_df()
-        self.alch.mode = 'R'
-        self.alch.ready = self.alch.readyCheck()
-        print("Ready check:", self.alch.ready)
-        if self.alch.ready:
-            self.alch.generate_result()
-            self.window_viewer.loadAlch(self.alch)
-            self.window_viewer.show()
+        self.alch.mode = 'R'  # TODO: Temp force to replicate for testing
+
+        # Perform ready check
+        self.alch.ready = alch_engine.readyCheck(self.alch)
+        self.logMsg("Ready check: "+str(self.alch.ready))
+        if not self.alch.ready:
+            self.logMsg("Not ready!")
+            return
+        self.logMsg("Running...")
+        # Send it for processing
+        alch_engine.generate_result(self.alch)
+
+        # Send the result over to the viewer
+        self.logMsg("Loading results")
+        self.window_viewer.loadAlch(self.alch)
+        self.window_viewer.show()
 
     def showMsg(self, msg):
         self.status_bar.showMessage(msg, 2000)
 
     def logMsg(self, msg):
+        # Display on output
         self.statusLog.setText(msg)
         # Record the message in the log file
 
@@ -97,10 +102,10 @@ class MainWindow(QMainWindow):
                 f.write(text.toPlainText())
             text.document().setModified(False)
         """
-        pass
+        return
 
     def closeEvent(self, e):
-        return
+        """
         if not text.document().isModified():
             return
         answer = QMessageBox.question(
@@ -112,4 +117,5 @@ class MainWindow(QMainWindow):
             save()
         elif answer & QMessageBox.Cancel:
             e.ignore()
-
+        """
+        return
