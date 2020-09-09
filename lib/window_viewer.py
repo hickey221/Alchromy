@@ -90,10 +90,9 @@ class ViewerWindow(QWidget):
         """
         self.stacked_right.setCurrentWidget(self.group_splash)
 
-    def loadAlch(self, alch):
+    def import_alch(self, alch):
         """
-        Take in a .alch pickle file and load it into the viewer GUI
-        :return:
+        Take in an alch OBJECT and import it to the list of active objects
         """
         # Use deep copy because this one may be changed
         self.alchs.append(copy.deepcopy(alch))
@@ -106,14 +105,15 @@ class ViewerWindow(QWidget):
         self.list_alch.item(new_idx).setSelected(True)
         self.list_alch.setFocus()
 
+
     def updateList(self):
         self.list_alch.clear()
         for a in self.alchs:
-            self.list_alch.addItem(a.name)
+            self.list_alch.addItem(a.metadata['name'])
         # Temp: Also call the graph save function
 
     def export(self):
-        alch_engine.export_to_JSON(self.alchs[self.idx])
+        alch_engine.export_to_json(self.alchs[self.idx])
 
     def focusAlch(self, i=None):
         """

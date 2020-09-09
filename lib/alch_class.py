@@ -27,19 +27,25 @@ class Alch:
     def __init__(self):
         self.metadata = {
             'date': datetime.datetime.now().isoformat(),  # datetime string
-            'version': VERSION
+            'version': VERSION,
+            'name': 'new'
+        }
+        self.options = {
+            'normalize': False,
+            'endpoints': [-np.inf, np.inf],
+            'mode': 'single'
         }
         # Initialize placeholders for pandas data frames
         self.data = None
-        self.ref = None
+        self.references = None
         self.common_idx = None
-        self.mode = None  # 'S'ingle, 'R'eplicate, 'K'inetic
         self.result = None
-        self.name = "new"
-        # self.outputPath = outputPath
-        # self.refPath = refPath
-        self.normalize = False
-        self.endpoints = (-np.inf, np.inf)
-        # self.result_list = []
         self.ready = False
         self.r2 = None
+        # self.name = "new"
+        # self.outputPath = outputPath
+        # self.refPath = refPath
+        # self.normalize = False
+        # self.endpoints = (-np.inf, np.inf)
+        # self.result_list = []
+        # self.mode = None  # 'S'ingle, 'R'eplicate, 'K'inetic

@@ -80,7 +80,7 @@ class LoadWindow(QWidget):
     def update_wave_list(self):
         # Check to see which list items are checked
         checked_index = self.get_checked_items(self.waves_list)
-                # print("Adding", self.waves_list.item(i))
+        # print("Adding", self.waves_list.item(i))
         # Pass those items back to Graph and update the plot
         # Adjusting index by 1 to account for skipped nm column
         df_index = [0]  # Add the nm col back

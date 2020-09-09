@@ -67,8 +67,14 @@ class MainWindow(QMainWindow):
         self.showMsg('Running!')
         # Grab temp data from the loading window
         self.alch.data = self.group_data.window_load.df
-        self.alch.ref = self.group_ref.get_df()
-        self.alch.mode = 'R'  # TODO: Temp force to replicate for testing
+        try:
+            print(f'trying to set name {self.group_data.window_load.name}')
+            # TODO: Clean up path  to file name
+            #self.alch.metadata['name'] = self.group_data.window_load.name
+        except:
+            print('could not set name')
+        self.alch.references = self.group_ref.get_df()
+        self.alch.options['mode'] = 'replicate'
 
         # Perform ready check
         self.alch.ready = alch_engine.readyCheck(self.alch)
@@ -82,7 +88,7 @@ class MainWindow(QMainWindow):
 
         # Send the result over to the viewer
         self.logMsg("Loading results")
-        self.window_viewer.loadAlch(self.alch)
+        self.window_viewer.import_alch(self.alch)
         self.window_viewer.show()
 
     def showMsg(self, msg):

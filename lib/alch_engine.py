@@ -7,12 +7,12 @@ import pandas as pd
 import numpy as np
 from warnings import warn
 import json, copy
-from lib import alch_deconv
+from lib import alch_deconv, alch_class
 
 
 def readyCheck(alch):
     # Weird 'is not None' calls because of df truth ambiguity
-    if alch.data is not None and alch.ref is not None:
+    if alch.data is not None and alch.references is not None:
         try:
             clean_data(alch)
         except ValueError as e:
@@ -30,17 +30,17 @@ def clean_data(alch):
     Trims all data to be within the limits, and removes data points that
     don't match
     """
-    if alch.ref is None or alch.data is None:
-        warn("Don't have all df loaded to clean.")
+    if alch.references is None or alch.data is None:
+        warn("Don't have all dataframes loaded to clean.")
         return
     # Find the index from the ref df
-    ref_idx = alch.ref.index.values
+    ref_idx = alch.references.index.values
     # Find the index from the data df
     data_idx = alch.data.index.values
     # Find common points and save this as the new index
     temp_common_idx = np.intersect1d(ref_idx, data_idx)
     # Cut anything outside our specified cutoffs
-    temp_common_idx = np.array([x for x in temp_common_idx if alch.endpoints[0] < x < alch.endpoints[1]])
+    temp_common_idx = np.array([x for x in temp_common_idx if alch.options['endpoints'][0] < x < alch.options['endpoints'][1]])
     # Throw error if no overlap
     if len(temp_common_idx) == 0:
         warn("No overlap in indices!")
@@ -52,10 +52,10 @@ def clean_data(alch):
     # Slim down each df by the new index
     alch.common_idx = temp_common_idx
     alch.data = alch.data.loc[temp_common_idx]
-    alch.ref = alch.ref.loc[temp_common_idx]
+    alch.references = alch.references.loc[temp_common_idx]
     # Drop indices from data now that it's stored in common_idx
     alch.data = alch.data.drop('idx', axis=1)
-    alch.ref = alch.ref.drop('idx', axis=1)
+    alch.references = alch.references.drop('idx', axis=1)
     print("Cleaned successfully with", len(alch.common_idx), "fitting points.")
 
 
@@ -68,28 +68,32 @@ def generate_result(alch):
         return
 
     # Get out of pandas format
+    # TODO: Is this still relevant?
     expData = alch.data.values
 
-    if alch.mode == 'S':
-        pass
-    elif alch.mode == 'R':
+    if alch.options['mode'] == 'single':
+        if alch.options['normalize']:
+            expData = expData - np.min(expData)
+    elif alch.options['mode'] == 'replicate':
         # In replicate case, make an average of all data
+        # TODO: Normalize before or after taking mean?
         expData = expData.mean(axis=1)
+        if alch.options['normalize']:
+            expData = expData - np.min(expData)
     else:
-        print("Don't recognize mode", alch.mode)
+        print(f"Don't recognize mode {alch.mode}.")
         return
 
     # Make a call to deconvolution algo, store the results
-    coeffs, perr = alch_deconv.doFitting(alch.ref, expData)
+    coeffs, perr = alch_deconv.doFitting(alch.references, expData)
 
-    # Get fit data column now that deconvolution is complete
+    # Build a fit data column now that deconvolution is complete
     alch.result = pd.DataFrame(alch.common_idx)
     alch.result.columns = ['idx']
     alch.result['data'] = expData
     # print(self.result['data'])
-    alch.result['fit'] = alch_deconv.func(alch.ref.T, *coeffs)
-    # print(refCols)
-    # print(coeffs/sum(coeffs))
+    # Apply the function using fit data to generate a curve
+    alch.result['fit'] = alch_deconv.func(alch.references.T, *coeffs)
 
     ss_r = np.sum((alch.result['data'] - alch.result['fit']) ** 2)
     # print(f"ss_r={ss_r} ({type(ss_r)})")
@@ -106,19 +110,56 @@ def reset(alch):
     Erases all exp and ref data
     """
     alch.data = None
-    alch.ref = None
+    alch.references = None
     alch.ready = False
 
 
-def export_to_JSON(alch):
+def export_to_json(alch):
     # Make a copy we can mess with
     j_alch = copy.deepcopy(alch)
     # Convert pandas and numpy objects manually
     j_alch.data = j_alch.data.to_json()
     j_alch.common_idx = j_alch.common_idx.tolist()
-    j_alch.ref = j_alch.ref.to_json()
+    j_alch.references = j_alch.references.to_json()
     j_alch.result = j_alch.result.to_json()
 
     # Now everything can be serialized
     with open(j_alch.name+'.alch', 'w') as file:
         json.dump(j_alch.__dict__, file, ensure_ascii=False, indent=4)
+
+
+def import_from_json(fpath):
+    """
+    Load an .alch FILE (json) from the disk and then return an alch OBJECT
+    :return:
+    """
+    # Load file into json object
+    with open(fpath, 'r') as file:
+        raw_json = json.load(file)
+    print('read', raw_json)
+    # Create a new alch object
+    alch = alch_class.Alch()
+
+    # Populate relevant fields with json data
+    alch.common_idx = list(raw_json['common_idx'])
+    # Dictionaries
+    try:
+        alch.metadata = raw_json['metadata']
+        alch.options = raw_json['options']
+    except Exception as e:
+        print('Error loading dictionaries', e)
+
+    # Pandas data frames
+    try:
+        alch.data = pd.read_json(raw_json['data'])
+        alch.references = pd.read_json(raw_json['references'])
+    except Exception as e:
+        print('Error loading data and references dataframes', e)
+
+    # Results
+    try:
+        alch.result = pd.read_json(raw_json['result'])
+    except Exception as e:
+        print('Error loading results dataframe', e)
+
+    return alch
