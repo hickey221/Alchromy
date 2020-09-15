@@ -5,7 +5,7 @@ Takes in file path, returns pandas df
 
 import os
 import pandas as pd
-
+from lib import alch_engine
 
 def load(filePath):
     """
@@ -14,13 +14,17 @@ def load(filePath):
     """
     _, ext = os.path.splitext(filePath)
 
-    allowedFiles = ['.csv', '.dat', '.txt', '.xls', '.xlsx']
+    allowedFiles = ['.csv', '.dat', '.txt', '.xls', '.xlsx', '.alch']
     # Read in the file
     print("Detected extension", ext)
     if ext in allowedFiles:
         if ext in ['.xls', '.xlsx']:
             print("Reading as excel")
             df = pd.read_excel(filePath)
+        elif ext in ['.alch']:
+            print("Reading data from existing .alch file")
+            temp_alch = alch_engine.import_from_json(filePath)
+            df = temp_alch.data
         else:
             print("Reading as plaintext (tab delim)")
             df = pd.read_csv(filePath, '\t')

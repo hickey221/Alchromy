@@ -72,12 +72,9 @@ class MainWindow(QMainWindow):
         self.showMsg('Running!')
         # Grab temp data from the loading window
         self.alch.data = self.group_data.window_load.df
-        try:
-            print(f'trying to set name {self.group_data.window_load.name}')
-            # TODO: Clean up path  to file name
-            #self.alch.metadata['name'] = self.group_data.window_load.name
-        except:
-            print('could not set name')
+
+        print(f'Using name from load window: {self.group_data.window_load.name}')
+        self.alch.metadata['name'] = self.group_data.window_load.name
         self.alch.references = self.group_ref.get_df()
         self.alch.options['mode'] = 'replicate'
 

@@ -4,15 +4,18 @@ from PySide2.QtGui import QIcon
 
 from lib import read_data_file
 from lib import group_graph
+import os
 
 
 class LoadWindow(QWidget):
+    # Todo: Allow for name specification, with default being filename
     def __init__(self):
         # Establish some window stuff
         QWidget.__init__(self)
         self.resize(800, 400)
         self.df = None
         self.name = None
+        self.file_path = None
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Modal setting = this window has focus over MainWindow when shown
         self.setWindowModality(Qt.ApplicationModal)
@@ -29,6 +32,9 @@ class LoadWindow(QWidget):
         # Browse button & action
         self.check_button = QPushButton('Check/uncheck all')
         self.check_button.clicked.connect(self.check_button_action)
+
+        self.box_name = QLineEdit('')
+        self.box_name.setFixedWidth(200)
 
         self.button_save = QPushButton('Save')
         self.button_save.clicked.connect(self.button_save_action)
@@ -50,6 +56,8 @@ class LoadWindow(QWidget):
         # Third row: Save button
         bottom_button_bar.addWidget(self.check_button, stretch=0)
         bottom_button_bar.addWidget(QLabel(''), 1)  # Spacer
+        bottom_button_bar.addWidget(QLabel('Run name:'))
+        bottom_button_bar.addWidget(self.box_name)
         bottom_button_bar.addWidget(self.button_save)
 
         # Assemble the layout and apply it
@@ -94,15 +102,20 @@ class LoadWindow(QWidget):
     def browse_button_action(self):
         # Todo: Allow loading an .alch file, extracting only the data from it
         # Todo: Allow for directory browsing and sequential runs
-        file_name = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
-        if file_name[0]:
-            self.df = read_data_file.load(file_name[0])
-            if self.df is None:
-                print('Invalid file, aborting file browse')
-                return
-            self.graph.setModel(self.df)
-            self.make_wave_list(self.df)
-            self.name = file_name
+        get_file_path = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
+        file_path = get_file_path[0]  # /home/users/.../data.txt
+        basename = os.path.basename(file_path)  # data.txt
+        self.name = os.path.splitext(basename)[0]  # data
+        if not file_path:
+            return
+        self.df = read_data_file.load(file_path)
+        if self.df is None:
+            print('No df generated, aborting file browse')
+            return
+        self.graph.setModel(self.df)
+        self.make_wave_list(self.df)
+
+        self.box_name.setText(self.name)
 
     def check_button_action(self):
         checked_index = self.get_checked_items(self.waves_list)
