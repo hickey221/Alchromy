@@ -23,6 +23,8 @@ import glob
 import os
 import deconv_multi
 import time
+# Other hidden dependencies
+import xlrd, openpyxl
 
 versionNumber = "1.2.2"
 #%% "About" dialog box
