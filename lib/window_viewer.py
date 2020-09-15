@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 import copy
-from lib import group_graph, alch_engine
+from lib import group_graph, alch_engine, bar_bottom_status
 
 
 class ViewerWindow(QWidget):
@@ -23,22 +23,25 @@ class ViewerWindow(QWidget):
         self.final_layout = QHBoxLayout()
         self.button_bar = QHBoxLayout()
         self.side_left = QVBoxLayout()
-        self.size_left = QSizePolicy()
         self.side_right = QVBoxLayout()
-        self.stacked_right = QStackedWidget()
-        self.size_right = QSizePolicy()
         self.side_splash = QVBoxLayout()
+
+        # Widget creation
         self.graph = group_graph.Graph()
 
         # Layout: Left
+        self.size_policy_left = QSizePolicy()
         self.group_left = QGroupBox('Files')
         self.side_left.addWidget(self.list_alch)
         self.side_left.addLayout(self.button_bar)
         self.group_left.setLayout(self.side_left)
-        self.size_left.setHorizontalStretch(0)
-        self.group_left.setSizePolicy(self.size_left)
+        #self.size_policy_left.setHorizontalStretch(0)
+        self.size_policy_left.setHorizontalPolicy(QSizePolicy.Maximum)
+        #self.group_left.setSizePolicy(self.size_policy_left)
 
         # Layout: Right (functional)
+        self.size_policy_right = QSizePolicy()
+        self.stacked_right = QStackedWidget()
         self.r2value = QLabel('R squared goes here')
         self.group_right = QGroupBox('Results')
         self.side_right.addWidget(QLabel('Graph'), 0)
@@ -46,23 +49,28 @@ class ViewerWindow(QWidget):
         self.side_right.addWidget(QLabel('Options used'), 0)
         self.side_right.addWidget(self.r2value, 0)
         self.group_right.setLayout(self.side_right)
-        self.size_right.setHorizontalStretch(1)
-        self.group_right.setSizePolicy(self.size_right)
+        #self.size_policy_right.setHorizontalStretch(1)
+        #self.size_policy_right.setHorizontalPolicy(QSizePolicy.Maximum)
+        #self.group_right.setSizePolicy(self.size_policy_right)
 
         # Layout: Right (Splash screen)
         self.group_splash = QGroupBox('Results')
         self.side_splash.addWidget(QLabel('Select a result from the list to view'))
         self.group_splash.setLayout(self.side_splash)
-        self.group_splash.setSizePolicy(self.size_right)
+        #self.group_splash.setSizePolicy(self.size_policy_right)
 
         # Layout: Buttons
+        self.button_import = QPushButton('Import')
+        self.button_import.clicked.connect(self.import_alch)
+
         self.button_remove = QPushButton('Remove')
-        self.button_remove.clicked.connect(self.showSplashScreen)
+        self.button_remove.clicked.connect(self.remove)
 
         self.button_export = QPushButton('Export')
         self.button_export.clicked.connect(self.export)
 
-        self.button_bar.addWidget(QPushButton('Re-run'))
+        # self.button_bar.addWidget(QPushButton('Re-run'))
+        self.button_bar.addWidget(self.button_import)
         self.button_bar.addWidget(self.button_export)
         self.button_bar.addWidget(self.button_remove)
 
@@ -72,9 +80,16 @@ class ViewerWindow(QWidget):
         self.split_area = QSplitter()
         self.split_area.addWidget(self.group_left)
         self.split_area.addWidget(self.stacked_right)
-        # self.split_area.addWidget(self.group_right)
-        self.split_area.setCollapsible(0, False)
+
+        # Set size policies now that widgets are placed
+        self.split_area.setCollapsible(0, True)
         self.split_area.setCollapsible(1, False)
+        self.split_area.setSizes([100, 400])
+        self.split_area.setStretchFactor(0, 0)
+        self.split_area.setStretchFactor(1, 1)
+        self.group_left.setSizePolicy(self.size_policy_left)
+        self.group_right.setSizePolicy(self.size_policy_right)
+        self.group_splash.setSizePolicy(self.size_policy_right)
 
         # Finalize layout
         self.final_layout.addWidget(self.split_area)
@@ -90,7 +105,7 @@ class ViewerWindow(QWidget):
         """
         self.stacked_right.setCurrentWidget(self.group_splash)
 
-    def import_alch(self, alch):
+    def load_alch(self, alch):
         """
         Take in an alch OBJECT and import it to the list of active objects
         """
@@ -105,15 +120,44 @@ class ViewerWindow(QWidget):
         self.list_alch.item(new_idx).setSelected(True)
         self.list_alch.setFocus()
 
-
     def updateList(self):
         self.list_alch.clear()
         for a in self.alchs:
             self.list_alch.addItem(a.metadata['name'])
         # Temp: Also call the graph save function
 
+    def remove(self):
+        """
+        Get rid of the currently selected alch
+        :return:
+        """
+    def import_alch(self):
+        """
+        Browse for a .alch file and load it into the current workflow
+        TODO: How to handle duplicate names?
+        :return:
+        """
+        file_name = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.alch)')
+        if not file_name[0]:
+            # Abort if user cancelled the dialog
+            return
+        # Create alch object from file
+        new_alch = alch_engine.import_from_json(file_name[0])
+        # Add it to the viewer through the traditional method
+        self.load_alch(new_alch)
+
     def export(self):
-        alch_engine.export_to_json(self.alchs[self.idx])
+        """
+        Grab the currently selected alch and send it to be turned into a file
+        :return:
+        """
+        # Todo: allow browsing for output file location?
+        default_name = self.alchs[self.idx].metadata['name']
+        file_name = QFileDialog.getSaveFileName(self, 'Export File', default_name, '(*.alch)')
+        if not file_name[0]:
+            # Abort if user cancelled the dialog
+            return
+        alch_engine.export_to_json(self.alchs[self.idx], file_name[0])
 
     def focusAlch(self, i=None):
         """
@@ -128,4 +172,4 @@ class ViewerWindow(QWidget):
         self.r2value.setText(str(self.alchs[i].r2))
         self.stacked_right.setCurrentWidget(self.group_right)
         # TODO: Load alch result into the graph
-        self.graph.setModel(self.alchs[i].result)
+        self.graph.setModel(self.alchs[i].result_df)
