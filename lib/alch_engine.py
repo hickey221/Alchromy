@@ -1,16 +1,22 @@
 """
 File to contain the methods used to manipulate an alch, formerly
-the methods baked into the alch class
-
+the methods baked into the alch class. Does not contain methods
+dependent on PySide2 or Qt, so can be used independently.
 """
 import pandas as pd
 import numpy as np
 from warnings import warn
-import json, copy
+import json
+import copy
 from lib import alch_deconv, alch_class
 
 
 def readyCheck(alch):
+    """
+    Check if an alch object meets all requirements for running
+    :param alch:
+    :return: True or False
+    """
     # Weird 'is not None' calls because of df truth ambiguity
     if alch.data is not None and alch.references is not None:
         try:
@@ -88,17 +94,17 @@ def generate_result(alch):
     coeffs, perr = alch_deconv.doFitting(alch.references, expData)
 
     # Build a fit data column now that deconvolution is complete
-    alch.result = pd.DataFrame(alch.common_idx)
-    alch.result.columns = ['idx']
-    alch.result['data'] = expData
+    alch.result_df = pd.DataFrame(alch.common_idx)
+    alch.result_df.columns = ['idx']
+    alch.result_df['data'] = expData
     # print(self.result['data'])
     # Apply the function using fit data to generate a curve
-    alch.result['fit'] = alch_deconv.func(alch.references.T, *coeffs)
+    alch.result_df['fit'] = alch_deconv.func(alch.references.T, *coeffs)
 
-    ss_r = np.sum((alch.result['data'] - alch.result['fit']) ** 2)
+    ss_r = np.sum((alch.result_df['data'] - alch.result_df['fit']) ** 2)
     # print(f"ss_r={ss_r} ({type(ss_r)})")
     # print(type(self.result))
-    ss_t = np.sum((alch.result['data'] - np.mean(alch.result['data'])) ** 2)
+    ss_t = np.sum((alch.result_df['data'] - np.mean(alch.result_df['data'])) ** 2)
     # print(f"ss_r={ss_t} ({type(ss_t)})")
     # print(ss_t)
     alch.r2 = 1 - (ss_r / ss_t)
@@ -114,17 +120,22 @@ def reset(alch):
     alch.ready = False
 
 
-def export_to_json(alch):
+def export_to_json(alch, file_name=None):
     # Make a copy we can mess with
     j_alch = copy.deepcopy(alch)
+
+    # Ensure we have a name
+    if file_name is None:
+        file_name = j_alch.metadata['name']+'.alch'
+
     # Convert pandas and numpy objects manually
     j_alch.data = j_alch.data.to_json()
     j_alch.common_idx = j_alch.common_idx.tolist()
     j_alch.references = j_alch.references.to_json()
-    j_alch.result = j_alch.result.to_json()
+    j_alch.result_df = j_alch.result_df.to_json()
 
     # Now everything can be serialized
-    with open(j_alch.name+'.alch', 'w') as file:
+    with open(file_name, 'w') as file:
         json.dump(j_alch.__dict__, file, ensure_ascii=False, indent=4)
 
 
@@ -158,8 +169,9 @@ def import_from_json(fpath):
 
     # Results
     try:
-        alch.result = pd.read_json(raw_json['result'])
+        alch.result_df = pd.read_json(raw_json['result_df'])
+        alch.restults = raw_json['results']
     except Exception as e:
-        print('Error loading results dataframe', e)
+        print('Error loading results', e)
 
     return alch
