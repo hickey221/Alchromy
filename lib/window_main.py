@@ -1,5 +1,10 @@
 # PyQt5==5.9.2
+"""
+Main window containing all other widgets.
+Contains groups for 'mode', 'data', 'options', and 'reference'
+As well as bars for menu and status
 
+"""
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 
@@ -15,7 +20,7 @@ class MainWindow(QMainWindow):
         # Create a new log file
         self.statusLog = QLabel("")
         self.alch = alch_class.Alch()
-        self.logMsg("Alch loaded")
+        self.logMsg("New alch created")
         self.window_viewer = window_viewer.ViewerWindow()  # Why must this exist already?
 
         # Get a menu bar at top of window
@@ -60,7 +65,7 @@ class MainWindow(QMainWindow):
         self.content.setLayout(layout_final)
 
     def run_action(self):
-
+        #
         if self.group_data.window_load.df is None:
             self.showMsg('No data loaded!')
             return
@@ -88,7 +93,7 @@ class MainWindow(QMainWindow):
 
         # Send the result over to the viewer
         self.logMsg("Loading results")
-        self.window_viewer.import_alch(self.alch)
+        self.window_viewer.load_alch(self.alch)
         self.window_viewer.show()
 
     def showMsg(self, msg):
