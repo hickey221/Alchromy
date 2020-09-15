@@ -6,14 +6,9 @@
 Welcome to Alchromy! This package is designed to perform spectral deconvolution on waveforms obtained from UV-Vis spectrometry. It was designed for identification of different hemoglobin species in complex mixtures. It is currently in a closed beta testing phase, so expect many changes going forward.
 
 ## Dependencies
-Alchromy requires Python 3 and the following packages:
- * tkinter
- * pandas
- * glob
- * io
- * scipy
- * numpy
- * matplotlib
+Alchromy requires Python 3 and the following packages (install with pip or your favorite IDE):
+
+`tkinter pandas glob scipy numpy matplotlib xlrd`
 
 ## Usage
 Users can access the script through the command line (using *deconv_multi.py*) or the GUI (*main_gui.py*). In either case, the following parameters should be specified:
