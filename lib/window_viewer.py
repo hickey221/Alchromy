@@ -151,7 +151,7 @@ class ViewerWindow(QWidget):
         Grab the currently selected alch and send it to be turned into a file
         :return:
         """
-        # Todo: allow browsing for output file location?
+        print(f"Taking name of index position {self.idx}: {self.alchs[self.idx].metadata['name']}")
         default_name = self.alchs[self.idx].metadata['name']
         file_name = QFileDialog.getSaveFileName(self, 'Export File', default_name, '(*.alch)')
         if not file_name[0]:
@@ -168,8 +168,9 @@ class ViewerWindow(QWidget):
         i = self.list_alch.currentRow()
         #if i is None:
         #    i = self.list_alch.currentRow()
-        #print("Focusing on item", i)
+        # print("Focusing on item", i)
+        self.idx = i
         self.r2value.setText(str(self.alchs[i].r2))
         self.stacked_right.setCurrentWidget(self.group_right)
-        # TODO: Load alch result into the graph
+        # TODO: Load alch result into the RHS
         self.graph.setModel(self.alchs[i].result_df)
