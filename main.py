@@ -2,6 +2,7 @@
 """
 Todo list:
 GENERAL:
+[ ] Handle .alch as an input
 [ ] Re-add kinetic run
 [ ] Track results as a dict of { species: (amt, err) }
 [ ] Allow choice of folder to save results
