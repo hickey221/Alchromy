@@ -9,8 +9,6 @@ AlchClass.py
 Describes the Alch object class. An Alch instance contains a set of data,
 references, and results objects from an Alchromy analysis.
 
-TODO: Change result_list to only be a single result per alch
-TODO: Move methods out of this class
 
 """
 # External packages
@@ -25,11 +23,15 @@ class Alch:
     for each result produced.
     """
     def __init__(self):
+        # Miscellaneous data about the alch object
         self.metadata = {
             'date': datetime.datetime.now().isoformat(),  # datetime string
             'version': VERSION,
-            'name': 'new'
+            'name': 'new',
+            'data_file_path': '',
+            'reference_file_path': ''
         }
+        # Options that are relevant to the deconvolution function
         self.options = {
             'normalize': False,
             'endpoints': [-np.inf, np.inf],
@@ -38,14 +40,11 @@ class Alch:
         # Initialize placeholders for pandas data frames
         self.data = None
         self.references = None
+        self.result_df = None
+
+
         self.common_idx = None
-        self.result = None
         self.ready = False
         self.r2 = None
-        # self.name = "new"
-        # self.outputPath = outputPath
-        # self.refPath = refPath
-        # self.normalize = False
-        # self.endpoints = (-np.inf, np.inf)
-        # self.result_list = []
-        # self.mode = None  # 'S'ingle, 'R'eplicate, 'K'inetic
+        self.results = {}
+
