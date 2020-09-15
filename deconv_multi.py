@@ -223,6 +223,9 @@ def multiColDeconv(refPath='refspec.dat',
                 print("Running average of replicates deconv")
             # Average all non-wavelength spectra into one
             exp['data'] = exp[timePoints].mean(axis=1)
+            if flags['Normalize']:
+                print("Normalizing data")
+                exp['data'] = exp['data'] - np.min(exp['data'])
             # Then perform deconvolution
             coeffs, perr = doFitting(ref.drop('nm',axis=1), exp['data'])
             # Create a line of best fit using our results
