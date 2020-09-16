@@ -38,14 +38,14 @@ def load(filePath):
     # Force column names to string
     df.columns = df.columns.astype(str)
     # Bug fix for duplicate 2nd column name in some Olis-produced files
-    # print("Loaded columns:", df.columns)
     if df.columns[0] == '0' and df.columns[1] == '0.1':
         df.rename(columns={df.columns[1]: '0'}, inplace=True)
+
     # Rename first column as the index 'idx'
     # df.rename(columns={df.columns[0]: 'nm'}, inplace=True)
     df.columns.values[0] = 'idx'
     # Treat 'idx' as the official index column
     df.set_index('idx', inplace=True, drop=False)
-    print("Saving columns:", df.columns)
+    print("Loaded columns:", df.columns)
 
     return df
