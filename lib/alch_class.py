@@ -27,7 +27,7 @@ class Alch:
         self.metadata = {
             'date': datetime.datetime.now().isoformat(),  # datetime string
             'version': VERSION,
-            'name': 'new',
+            'name': 'unnamed run',
             'data_file_path': '',
             'reference_file_path': ''
         }
