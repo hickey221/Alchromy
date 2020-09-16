@@ -9,7 +9,8 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 
 # Internal imports
-from lib import group_mode, group_data, group_options, bar_top_menu, alch_class, group_ref, window_viewer, bar_bottom_status, alch_engine
+from lib import group_mode, group_data, group_options, bar_top_menu, \
+    alch_class, group_ref, window_viewer, bar_bottom_status, alch_engine
 
 
 class MainWindow(QMainWindow):
@@ -21,7 +22,7 @@ class MainWindow(QMainWindow):
         self.statusLog = QLabel("")
         self.alch = alch_class.Alch()
         self.logMsg("New alch created")
-        self.window_viewer = window_viewer.ViewerWindow()  # Why must this exist already?
+        self.window_viewer = window_viewer.ViewerWindow()
 
         # Get a menu bar at top of window
         self.menu_bar = bar_top_menu.MenuBar(parent=self)
@@ -29,7 +30,6 @@ class MainWindow(QMainWindow):
         # Get a status bar at bottom of window
         self.status_bar = bar_bottom_status.StatusBar(parent=self, log=self.statusLog)
         self.setStatusBar(self.status_bar)
-        # self.populateStatusBar()
 
         # Begin main content assembly
         self.content = QWidget()
@@ -65,28 +65,45 @@ class MainWindow(QMainWindow):
         self.content.setLayout(layout_final)
 
     def run_action(self):
-        #
+        """
+        Grab dataframes from the reference and data groups,
+        pack it into our current alch, and send it out to
+        be fitted using alch_engine.
+        :return:
+        """
+        # Todo: Check if we're using loaded or pasted data
         if self.group_data.window_load.df is None:
-            self.showMsg('No data loaded!')
+            self.showMsg("No data loaded!")
             return
-        self.showMsg('Running!')
+        elif self.group_ref.get_df() is None:
+            self.showMsg("No reference loaded!")
+            return
+
         # Grab temp data from the loading window
+        self.logMsg("Migrating dataframes from load window")
         self.alch.data = self.group_data.window_load.df
-
-        print(f'Using name from load window: {self.group_data.window_load.name}')
-        self.alch.metadata['name'] = self.group_data.window_load.name
         self.alch.references = self.group_ref.get_df()
-        self.alch.options['mode'] = 'replicate'
+        self.logMsg("Performing ready check: ")
 
-        # Perform ready check
-        ready = alch_engine.readyCheck(self.alch)
-        self.logMsg("Ready check: "+str(ready))
-        if not ready:
-            self.logMsg("Not ready!")
-            return
+        self.alch.options['mode'] = self.group_mode.get_current_mode()
+        # Todo: If mode is single but multiple data columns exist, run them individually
+        # Todo: Popup confirm dialog if running potentially too many individuals at once
+
+        self.logMsg("Cleaning data")
+        alch_engine.clean_data(self.alch)
+
+        self.logMsg("Loading metadata into alch")
+        self.alch.metadata['name'] = self.group_data.window_load.name
+        self.alch.metadata['data_file_path'] = self.group_data.window_load.file_path
+        self.alch.metadata['reference_file_path'] = self.group_ref.file_path
+
+        # Send it out for processing
         self.logMsg("Running...")
-        # Send it for processing
         alch_engine.generate_result(self.alch)
+
+        # Make a backup of the run so far
+        self.logMsg("Saving temp file")
+        alch_engine.save_temp_file(self.alch)
 
         # Send the result over to the viewer
         self.logMsg("Loading results")
@@ -94,36 +111,21 @@ class MainWindow(QMainWindow):
         self.window_viewer.show()
 
     def showMsg(self, msg):
+        # Display a message in the status bar for 2 seconds
         self.status_bar.showMessage(msg, 2000)
 
     def logMsg(self, msg):
         # Display on output
+        print(msg)
         self.statusLog.setText(msg)
         # Record the message in the log file
 
-    def save(self):
-        """
-        if file_path is None:
-            save_as()
-        else:
-            with open(save_file_path, "w") as f:
-                f.write(text.toPlainText())
-            text.document().setModified(False)
-        """
-        return
-
     def closeEvent(self, e):
         """
-        if not text.document().isModified():
-            return
-        answer = QMessageBox.question(
-            window, None,
-            "You have unsaved changes. Save before closing?",
-            QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel
-        )
-        if answer & QMessageBox.Save:
-            save()
-        elif answer & QMessageBox.Cancel:
-            e.ignore()
+        Safely shut down the program
+        :param e:
+        :return:
         """
-        return
+        # Todo: Write current settings to a config file to reload later
+        self.logMsg("Shutting down nicely")
+        self.close()
