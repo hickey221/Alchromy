@@ -5,11 +5,11 @@ class ModeGroup(QGroupBox):
     def __init__(self, parent):
         QGroupBox.__init__(self, "Mode")
         self.parent = parent  # Refers to the Qt MainWindow
-        self.mode_list = ("Single",
-                          "Replicate",
+        self.mode_list = ("Replicate",
+                          "Batch",
                           "Kinetic")
-        self.mode_desc = ("Analyze one spectrum at a time, or a batch of several spectra separately.",
-                          "Average multiple spectra and analyze as one.",
+        self.mode_desc = ("Analyze one or more spectra of a single sample type (default).",
+                          "Analyze a group of several spectra separately. Generates multiple outputs.",
                           "Treat multiple spectra as time course data.")
         self.label_mode = QLabel(self.mode_desc[0])
         self.mode_box = QComboBox()
@@ -25,3 +25,6 @@ class ModeGroup(QGroupBox):
         # Get the appropriate description of the selected mode
         self.label_mode.setText(self.mode_desc[self.mode_box.currentIndex()])
 
+    def get_current_mode(self):
+        # Return a string of the selected mode
+        return self.mode_list[self.mode_box.currentIndex()]
