@@ -79,9 +79,9 @@ class MainWindow(QMainWindow):
         self.alch.options['mode'] = 'replicate'
 
         # Perform ready check
-        self.alch.ready = alch_engine.readyCheck(self.alch)
-        self.logMsg("Ready check: "+str(self.alch.ready))
-        if not self.alch.ready:
+        ready = alch_engine.readyCheck(self.alch)
+        self.logMsg("Ready check: "+str(ready))
+        if not ready:
             self.logMsg("Not ready!")
             return
         self.logMsg("Running...")
