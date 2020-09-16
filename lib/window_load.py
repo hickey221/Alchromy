@@ -100,8 +100,7 @@ class LoadWindow(QWidget):
         self.graph.setModel(new_df)
 
     def browse_button_action(self):
-        # Todo: Allow loading an .alch file, extracting only the data from it
-        # Todo: Allow for directory browsing and sequential runs
+        # Todo: Allow for multiple file / directory loading
         get_file_path = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
         file_path = get_file_path[0]  # /home/users/.../data.txt
         basename = os.path.basename(file_path)  # data.txt
