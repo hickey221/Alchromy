@@ -69,7 +69,7 @@ def generate_result(alch):
     """
     Given settings about a run, generate a result object
     """
-    if not alch.ready:
+    if not readyCheck(alch):
         warn("Not ready to run")
         return
 
@@ -129,7 +129,8 @@ def export_to_json(alch, file_name=None):
         file_name = j_alch.metadata['name']+'.alch'
 
     # Convert pandas and numpy objects manually
-    j_alch.data = j_alch.data.to_json()
+    j_alch.data = j_alch.data.to_json(orient='index')
+    print(f"Exporting json data {j_alch.data}")
     j_alch.common_idx = j_alch.common_idx.tolist()
     j_alch.references = j_alch.references.to_json()
     j_alch.result_df = j_alch.result_df.to_json()
@@ -162,7 +163,9 @@ def import_from_json(fpath):
 
     # Pandas data frames
     try:
-        alch.data = pd.read_json(raw_json['data'])
+        # Fixme: Read data columns have garbage date headers
+        alch.data = pd.read_json(raw_json['data'], orient='index')
+        print(f"Imported json data to PD as: {alch.data}")
         alch.references = pd.read_json(raw_json['references'])
     except Exception as e:
         print('Error loading data and references dataframes', e)
