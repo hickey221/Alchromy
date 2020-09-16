@@ -7,22 +7,23 @@ class MenuBar(QMenuBar):
     def __init__(self, parent):
         QMenuBar.__init__(self)
         self.parent = parent  # Refers to the Qt MainWindow
-        # Populate QMenuBar with QMenu items
+        # Populate QMenuBar with top-level QMenu items
         self.menu_file = self.addMenu("&File")
-        self.menu_file.addAction(QAction("test"))
         self.menu_tools = self.addMenu("&Tools")
         self.menu_help = self.addMenu("&Help")
-        # VVV POPULATE MENUBAR VVV
+
+        # Populate individual QMenu items with actions
         # About dialog
         self.action_about = QAction("&About")
         self.action_about.triggered.connect(self.show_about_dialog)
         # Save function
+        # Todo: Deprecated by automatic temp files / exporting from viewer
         self.action_save = QAction("&Save")
-        self.action_save.triggered.connect(self.parent.save)
+        # self.action_save.triggered.connect(self.parent.save)
         self.action_save.setShortcut(QKeySequence.Save)
         # Close function
         self.action_close = QAction("&Close")
-        self.action_close.triggered.connect(self.parent.close)
+        self.action_close.triggered.connect(self.parent.closeEvent)
         # Preferences
         self.action_pref = QAction("&Preferences")
         # Theme switching (to be moved to preferences)
@@ -43,7 +44,7 @@ class MenuBar(QMenuBar):
         self.menu_tools.addAction(self.action_pref)
         self.menu_tools.addAction(self.action_debug)
         self.menu_tools.addAction(self.action_viewer)
-        #menu_tools.addAction(action_theme)
+        # menu_tools.addAction(action_theme)
         self.menu_help.addAction(self.action_faq)
         self.menu_help.addAction(self.action_about)
 
@@ -67,5 +68,5 @@ class MenuBar(QMenuBar):
                '&#8291;' \
                '</center>' \
                '<p>Version '+VERSION+'<br/>' \
-               'Copyright &copy; 2016-2019 Rich Hickey</p>'
+               '&copy; 2016-2020 Rich Hickey</p>'
         QMessageBox.about(self, "Alchromy v. "+VERSION, text)
