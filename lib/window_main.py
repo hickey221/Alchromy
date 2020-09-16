@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Create a new log file
-        self.statusLog = QLabel("")
+        self.statusLog = QLabel('')
         self.alch = alch_class.Alch()
         self.logMsg("New alch created")
         self.window_viewer = window_viewer.ViewerWindow()
@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 
         run_button = QPushButton('Run')
         # run_button.setStatusTip('Begin analysis with selected settings.')
-        run_button.clicked.connect(self.run_action)
+        run_button.clicked.connect(self.run_button_action)
 
         # Assemble layout
         layout_final = QVBoxLayout()
@@ -64,13 +64,63 @@ class MainWindow(QMainWindow):
 
         self.content.setLayout(layout_final)
 
-    def run_action(self):
+    def run_button_action(self):
+        if self.group_mode.get_current_mode() == "Replicate":
+            self.run_single()
+        elif self.group_mode.get_current_mode() == "Batch":
+            self.run_batch()
+        elif self.group_mode.get_current_mode() == "Kinetic":
+            pass
+
+    def run_batch(self):
+        # Check how many data columns we have
+        # Todo: Handle multiple files as well
+        col_names = self.group_data.window_load.df.columns
+        # For each non-index column
+        for col in col_names[1:]:
+            self.logMsg("Starting batch data: "+str(col))
+            # Create a new alch
+            temp_alch = alch_class.Alch()
+
+            # Create a df for data including index
+            temp_alch.data = self.group_data.window_load.df[['idx', col]]
+
+            # Load in the common metadata, options, and references
+            self.logMsg("Writing references")
+            temp_alch.references = self.group_ref.get_df()
+            self.logMsg("Writing metadata")
+            temp_alch.options['mode'] = 'Batch'
+            temp_alch.metadata['name'] = self.group_data.window_load.name+'.'+str(col)
+
+            temp_alch.metadata['data_file_path'] = self.group_data.window_load.file_path
+            temp_alch.metadata['reference_file_path'] = self.group_ref.file_path
+
+            # Time for processing
+            self.logMsg("Cleaning data")
+            alch_engine.clean_data(temp_alch)
+
+            self.logMsg("Running...")
+            alch_engine.generate_result(temp_alch)
+
+            # Make a backup of the run so far
+            self.logMsg("Saving temp file")
+            alch_engine.save_temp_file(temp_alch)
+
+            # Send the result over to the viewer
+            self.logMsg("Loading results")
+            self.window_viewer.load_alch(temp_alch)
+
+        # Finally, show the viewer
+        self.window_viewer.show()
+
+    def run_single(self):
         """
         Grab dataframes from the reference and data groups,
         pack it into our current alch, and send it out to
         be fitted using alch_engine.
         :return:
         """
+
         # Todo: Check if we're using loaded or pasted data
         if self.group_data.window_load.df is None:
             self.showMsg("No data loaded!")

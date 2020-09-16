@@ -59,7 +59,7 @@ def generate_result(alch):
 
     print(f"starting generate_result with {expData}")
 
-    if alch.options['mode'] == 'Replicate':
+    if alch.options['mode'] == 'Replicate' or alch.options['mode'] == 'Batch':
         # In replicate case, make an average of all data
         # TODO: Normalize before or after taking mean?
         expData = expData.mean(axis=1)
@@ -67,7 +67,7 @@ def generate_result(alch):
         if alch.options['normalize']:
             expData = expData - np.min(expData)
     else:
-        print(f"Don't recognize mode {alch.mode}.")
+        print(f"Don't recognize mode {alch.options['mode']}.")
         return
 
     # Make a call to deconvolution algo, store the results
