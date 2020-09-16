@@ -104,7 +104,6 @@ class LoadWindow(QWidget):
         get_file_path = QFileDialog.getOpenFileName(self, 'Open File', '.', '(*.*)')
         file_path = get_file_path[0]  # /home/users/.../data.txt
         basename = os.path.basename(file_path)  # data.txt
-        self.name = os.path.splitext(basename)[0]  # data
         if not file_path:
             return
         self.df = read_data_file.load(file_path)
@@ -114,6 +113,9 @@ class LoadWindow(QWidget):
         self.graph.setModel(self.df)
         self.make_wave_list(self.df)
 
+        # Keep track of the path & name
+        self.name = os.path.splitext(basename)[0]  # data
+        self.file_path = file_path
         self.box_name.setText(self.name)
 
     def check_button_action(self):
