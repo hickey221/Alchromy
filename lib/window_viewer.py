@@ -110,6 +110,7 @@ class ViewerWindow(QWidget):
         Take in an alch OBJECT and import it to the list of active objects
         """
         # Use deep copy because this one may be changed
+        print(f"Making a (deep) copy of {type(alch)}")
         self.alchs.append(copy.deepcopy(alch))
         self.updateList()
 
@@ -131,6 +132,21 @@ class ViewerWindow(QWidget):
         Get rid of the currently selected alch
         :return:
         """
+        # Remove from list of alchs
+        self.alchs.pop(self.idx)
+        # Remove from list widget
+        self.list_alch.takeItem(self.idx)
+
+        # Adjust index if we were in the last position
+        if self.idx >= self.list_alch.count():
+            self.idx = self.list_alch.count() - 1
+        if self.idx < 0:
+            # Must have deleted last item
+            self.showSplashScreen()
+            return
+        # Change focus
+        self.focusAlch()
+
     def import_alch(self):
         """
         Browse for a .alch file and load it into the current workflow
@@ -164,11 +180,8 @@ class ViewerWindow(QWidget):
         Select a file from the menu and load its contents into the preview pane
         :return:
         """
-        # Change labels to reflect current alch's results
-        i = self.list_alch.currentRow()
-        #if i is None:
-        #    i = self.list_alch.currentRow()
-        # print("Focusing on item", i)
+        if type(i) is not int:
+            i = self.list_alch.currentRow()
         self.idx = i
         self.r2value.setText(str(self.alchs[i].r2))
         self.stacked_right.setCurrentWidget(self.group_right)
