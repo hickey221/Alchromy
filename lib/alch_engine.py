@@ -9,32 +9,15 @@ from warnings import warn
 import json
 import copy
 from lib import alch_deconv, alch_class
-
-
-def readyCheck(alch):
-    """
-    Check if an alch object meets all requirements for running
-    :param alch:
-    :return: True or False
-    """
-    # Weird 'is not None' calls because of df truth ambiguity
-    if alch.data is not None and alch.references is not None:
-        try:
-            clean_data(alch)
-        except ValueError as e:
-            warn("Couldn't clean data. " + str(e))
-            return False
-    else:
-        # warn("Do not have both data and reference loaded")
-        return False
-    # Passed all tests
-    return True
+import os
+from lib.globals import *
+import datetime
 
 
 def clean_data(alch):
     """
     Trims all data to be within the limits, and removes data points that
-    don't match
+    don't share an index position
     """
     if alch.references is None or alch.data is None:
         warn("Don't have all dataframes loaded to clean.")
@@ -69,21 +52,18 @@ def generate_result(alch):
     """
     Given settings about a run, generate a result object
     """
-    if not readyCheck(alch):
-        warn("Not ready to run")
-        return
 
     # Get out of pandas format
     # TODO: Is this still relevant?
     expData = alch.data.values
 
-    if alch.options['mode'] == 'single':
-        if alch.options['normalize']:
-            expData = expData - np.min(expData)
-    elif alch.options['mode'] == 'replicate':
+    print(f"starting generate_result with {expData}")
+
+    if alch.options['mode'] == 'Replicate':
         # In replicate case, make an average of all data
         # TODO: Normalize before or after taking mean?
         expData = expData.mean(axis=1)
+        print(f"Replicate mean data: {expData}")
         if alch.options['normalize']:
             expData = expData - np.min(expData)
     else:
@@ -129,11 +109,25 @@ def export_to_json(alch, file_name=None):
         file_name = j_alch.metadata['name']+'.alch'
 
     # Convert pandas and numpy objects manually
-    j_alch.data = j_alch.data.to_json(orient='index')
-    print(f"Exporting json data {j_alch.data}")
+    j_alch.data = j_alch.data.to_json()
+    # print(f"Exporting json data {j_alch.data}")
     j_alch.common_idx = j_alch.common_idx.tolist()
     j_alch.references = j_alch.references.to_json()
     j_alch.result_df = j_alch.result_df.to_json()
+
+    # Check for file conflicts, append number if needed
+    if os.path.isfile(file_name):
+        print("File conflict found, attempting rename")
+        base, ext = os.path.splitext(file_name)
+        base += '_'
+        i = 1  # Todo: Start at highest number conflict, instead of at 1
+        new_base = base + str(i).zfill(3)  # Pad number to 3 digits
+        # Keep looking for new optinons or bail after 1000 tries
+        while os.path.isfile(new_base+ext) and i < 999:
+            i += 1
+            new_base = base + str(i).zfill(3)
+        # Keep the final name
+        file_name = new_base+ext
 
     # Now everything can be serialized
     with open(file_name, 'w') as file:
@@ -164,7 +158,7 @@ def import_from_json(fpath):
     # Pandas data frames
     try:
         # Fixme: Read data columns have garbage date headers
-        alch.data = pd.read_json(raw_json['data'], orient='index')
+        alch.data = pd.read_json(raw_json['data'])
         print(f"Imported json data to PD as: {alch.data}")
         alch.references = pd.read_json(raw_json['references'])
     except Exception as e:
@@ -178,3 +172,13 @@ def import_from_json(fpath):
         print('Error loading results', e)
 
     return alch
+
+
+def save_temp_file(alch):
+    # Output to .../temp/YY-MM-DD/file.alch
+    today_string = datetime.datetime.now().strftime("%y-%m-%d")
+    output_directory = TEMP_DIR_PATH + today_string + '/'
+    # Create dated directory if needed
+    if not os.path.isdir(output_directory):
+        os.makedirs(output_directory)
+    export_to_json(alch, output_directory + alch.metadata['name'] + '.alch')
