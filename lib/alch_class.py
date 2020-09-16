@@ -43,7 +43,6 @@ class Alch:
         self.result_df = None
 
         self.common_idx = None
-        self.ready = False
         self.r2 = None
         self.results = {}
 
