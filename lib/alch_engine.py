@@ -72,7 +72,12 @@ def generate_result(alch):
 
     # Make a call to deconvolution algo, store the results
     coeffs, perr = alch_deconv.doFitting(alch.references, expData)
-
+    # print(f"species: {alch.references.columns} | coeffs: {coeffs}")
+    # Save results about fractional composition
+    total_amount = sum(coeffs)
+    for species, coeff in zip(alch.references.columns, coeffs):
+        alch.results[species] = coeff  # Save coefficient for later plotting
+        alch.results[species] = coeff / total_amount  # Save fraction for easy interpretation
     # Build a fit data column now that deconvolution is complete
     alch.result_df = pd.DataFrame(alch.common_idx)
     alch.result_df.columns = ['idx']

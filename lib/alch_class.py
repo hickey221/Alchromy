@@ -44,5 +44,6 @@ class Alch:
 
         self.common_idx = None
         self.r2 = None
-        self.results = {}
+        self.coeffs = {}  # Fitting coeffs for each reference wave
+        self.results = {}  # Normalized composition eg. 'OxyHb': 0.995
 
