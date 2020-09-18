@@ -162,9 +162,9 @@ def import_from_json(fpath):
 
     # Pandas data frames
     try:
-        # Fixme: Read data columns have garbage date headers
-        alch.data = pd.read_json(raw_json['data'])
-        print(f"Imported json data to PD as: {alch.data}")
+        # Fixme: Imported data columns have date headers instead of str
+        alch.data = pd.read_json(raw_json['data'], dtype=False)
+        print(f"Imported json data from columns: {alch.data.columns}")
         alch.references = pd.read_json(raw_json['references'])
     except Exception as e:
         print('Error loading data and references dataframes', e)
