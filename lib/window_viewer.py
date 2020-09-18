@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QIcon
 import copy
-from lib import group_graph, alch_engine, bar_bottom_status
+from lib import group_graph, alch_engine
 
 
 class ViewerWindow(QWidget):
@@ -110,7 +110,7 @@ class ViewerWindow(QWidget):
         Take in an alch OBJECT and import it to the list of active objects
         """
         # Use deep copy because this one may be changed
-        print(f"Making a (deep) copy of {type(alch)}")
+        # print(f"Making a (deep) copy of {type(alch)}")
         self.alchs.append(copy.deepcopy(alch))
         self.updateList()
 
@@ -181,9 +181,15 @@ class ViewerWindow(QWidget):
         :return:
         """
         if type(i) is not int:
+            # Convert index 'event' to an integer
             i = self.list_alch.currentRow()
+
+        # Track index for navigating other lists
         self.idx = i
+
+        # Load up results from the selected alch
         self.r2value.setText(str(self.alchs[i].r2))
         self.stacked_right.setCurrentWidget(self.group_right)
-        # TODO: Load alch result into the RHS
+
+        # Load alch result into the RHS
         self.graph.setModel(self.alchs[i].result_df)
