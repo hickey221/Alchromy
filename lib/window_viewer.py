@@ -178,6 +178,7 @@ class ViewerWindow(QWidget):
     def focusAlch(self, i=None):
         """
         Select a file from the menu and load its contents into the preview pane
+        TODO: Add filename (if imported), all options selected,
         :return:
         """
         if type(i) is not int:
