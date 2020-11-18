@@ -39,11 +39,14 @@ class ViewerWindow(QWidget):
         self.size_policy_left.setHorizontalPolicy(QSizePolicy.Maximum)
         #self.group_left.setSizePolicy(self.size_policy_left)
 
+
+
         # Layout: Right (functional)
         self.size_policy_right = QSizePolicy()
         self.stacked_right = QStackedWidget()
         self.r2value = QLabel('R squared goes here')
         self.group_right = QGroupBox('Results')
+
         self.side_right.addWidget(QLabel('Graph'), 0)
         self.side_right.addWidget(self.graph, 1)
         self.side_right.addWidget(QLabel('Options used'), 0)
@@ -54,11 +57,10 @@ class ViewerWindow(QWidget):
         #self.group_right.setSizePolicy(self.size_policy_right)
 
         # Layout: Right (Splash screen)
-        self.group_splash = QGroupBox('Results')
+        self.group_splash = QGroupBox('Results (Empty)')
         self.side_splash.addWidget(QLabel('Select a result from the list to view'))
         self.group_splash.setLayout(self.side_splash)
         #self.group_splash.setSizePolicy(self.size_policy_right)
-
         # Layout: Buttons
         self.button_import = QPushButton('Import')
         self.button_import.clicked.connect(self.import_alch)
@@ -73,6 +75,10 @@ class ViewerWindow(QWidget):
         self.button_bar.addWidget(self.button_import)
         self.button_bar.addWidget(self.button_export)
         self.button_bar.addWidget(self.button_remove)
+
+        # Layout: Right (scroll area containing stack)
+        #self.scroll_right = QScrollArea()
+        #self.scroll_right.setWidget(self.side_right)
 
         # Add widgets
         self.stacked_right.addWidget(self.group_splash)
@@ -190,6 +196,13 @@ class ViewerWindow(QWidget):
 
         # Load up results from the selected alch
         self.r2value.setText(str(self.alchs[i].r2))
+        for key, val in self.alchs[i].options.items():
+            self.side_right.addWidget(QLabel(f'{key}: {val}'), 0)
+
+        for key, val in self.alchs[i].results.items():
+            self.side_right.addWidget(QLabel(f'{key}: {val}'), 0)
+
+        # Unfocus the splash screen if needed
         self.stacked_right.setCurrentWidget(self.group_right)
 
         # Load alch result into the RHS
