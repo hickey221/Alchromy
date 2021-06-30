@@ -1,1 +1,5 @@
 theme: jekyll-theme-minimal
+title: Alchromy
+description: A toolkit for spectral deconvolution of complex signals
+logo: alch_flask_icon.gif
+show_downloads: "true"
