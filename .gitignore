@@ -53,3 +53,6 @@ trig_ref.dat
 *.suo
 *.json
 >>>>>>> adbc2195222c332260975283c144382616b0470c
+
+# Alchromy output files
+*.alch
