@@ -1,4 +1,4 @@
-## About Alchromy
+## About
 
 This package is designed to perform spectral deconvolution on waveforms obtained from UV-Vis spectrometry. It was designed for identification of different hemoglobin species in complex mixtures, but may be used on any absorbance-based data.
 
