@@ -11,7 +11,7 @@ class ViewerWindow(QWidget):
     def __init__(self):
         # Establish some window stuff
         QWidget.__init__(self)
-        self.resize(800, 400)
+        self.resize(800, 600)
         self.setWindowIcon(QIcon("assets/alch_flask_icon.ico"))
         # Container for loaded alch files
         self.alchs = []
